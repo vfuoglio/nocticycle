@@ -18,9 +18,10 @@ from datetime import date, datetime, timedelta
 from calendar import monthrange
 from zoneinfo import ZoneInfo
 from dataclasses import dataclass
-import math
 from typing import List, Dict, Optional
 
+import math
+import argparse
 
 from skyfield.api import load
 from skyfield import almanac
@@ -95,10 +96,12 @@ ts = load.timescale()
 eph = load("de421.bsp")
 
 EVENTS_GLOBAL = None
+TZINFO = None
 
 
 # ----------------------------------------
-
+# UTILITIES
+# ----------------------------------------
 
 def validate_config():
     """Validate timezone and location settings with user-friendly messages."""
@@ -107,7 +110,7 @@ def validate_config():
     try:
         import tzdata  # noqa: F401
     except ImportError:
-        print("\n⚠️  Missing timezone data on this system")
+        print("\n⚠  Missing timezone data on this system")
         print("   Python could not find any IANA timezone database.")
         print("   This usually means the 'tzdata' package is not installed.")
         print("\n   To fix this, run:")
@@ -120,7 +123,7 @@ def validate_config():
     try:
         ZoneInfo(TZ)
     except Exception:
-        print("\n⚠️  Invalid timezone in configuration")
+        print("\n⚠  Invalid timezone in configuration")
         print(f"   You provided: '{TZ}'")
         print("   This is not a recognized IANA timezone identifier.")
         print("\n   Examples of valid timezones include:")
@@ -133,12 +136,12 @@ def validate_config():
 
     # --- Validate CITY -----------------------------------------------------
     if not CITY or not CITY.strip():
-        print("\n⚠️  CITY cannot be empty.")
+        print("\n⚠  CITY cannot be empty.")
         print("   Please set CITY to a real location name, e.g. 'Halifax'.\n")
         raise ValueError("CITY cannot be empty.")
 
     if any(char.isdigit() for char in CITY):
-        print("\n⚠️  CITY contains digits")
+        print("\n⚠  CITY contains digits")
         print(f"   You provided: '{CITY}'")
         print("   City names should not contain numbers.")
         print("   Example: 'Halifax', 'Toronto', 'Vancouver'\n")
@@ -146,14 +149,148 @@ def validate_config():
 
     # Optional: warn about capitalization
     if CITY != CITY.title():
-        print(f"\nℹ️  Note: CITY '{CITY}' is not capitalized normally.")
+        print(f"\nℹ  Note: CITY '{CITY}' is not capitalized normally.")
         print(f"   Consider using '{CITY.title()}' for nicer output.\n")
 
     return True
 
 
-validate_config()
-TZINFO = ZoneInfo(TZ)
+def parse_cli_args():
+    """
+    Parse command-line arguments for NoctiCycle.
+
+    This function defines the command-line interface for the lunar calendar
+    generator. It enforces three required parameters (CITY, TZ, YEAR) and
+    provides optional flags that override the default global configuration
+    values defined in the script.
+
+    Required arguments
+    ------------------
+    --city : str
+        The display name of the city (e.g., "Halifax").
+    --tz : str
+        The IANA timezone identifier (e.g., "America/Halifax").
+    --year : int
+        The calendar year to generate.
+
+    Optional flags
+    --------------
+    --show-luminance / --hide-luminance : bool
+        Enable or disable moon illumination percentage display.
+    --show-event-time / --hide-event-time : bool
+        Enable or disable event time display for lunar phases.
+    --exact-event-illumination / --midnight-illumination : bool
+        Choose whether illumination is computed at the exact event moment
+        or at local midnight.
+    --cosmetics / --no-cosmetics : bool
+        Enable or disable cosmetic SVG enhancements.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed arguments with attributes corresponding to each CLI option.
+    """
+    parser = argparse.ArgumentParser(
+        description="Generate a full-year lunar calendar with NoctiCycle."
+    )
+
+    # Required
+    parser.add_argument(
+        "--city",
+        required=True,
+        help="City name for display (e.g., 'Halifax')."
+    )
+    parser.add_argument(
+        "--tz",
+        required=True,
+        help="IANA timezone (e.g., 'America/Halifax')."
+    )
+    parser.add_argument(
+        "--year",
+        type=int,
+        required=True,
+        help="Year to generate the lunar calendar for."
+    )
+
+    # Optional overrides
+    parser.add_argument("--show-luminance", action="store_true",
+                        help="Force-enable moon illumination display.")
+    parser.add_argument("--hide-luminance", action="store_true",
+                        help="Disable moon illumination display.")
+
+    parser.add_argument("--show-event-time", action="store_true",
+                        help="Force-enable event time display.")
+    parser.add_argument("--hide-event-time", action="store_true",
+                        help="Disable event time display.")
+
+    parser.add_argument("--exact-event-illumination", action="store_true",
+                        help="Compute illumination at exact event time.")
+    parser.add_argument("--midnight-illumination", action="store_true",
+                        help="Compute illumination at local midnight.")
+
+    parser.add_argument("--cosmetics", action="store_true",
+                        help="Enable cosmetic SVG enhancements.")
+    parser.add_argument("--no-cosmetics", action="store_true",
+                        help="Disable cosmetic SVG enhancements.")
+
+    return parser.parse_args()
+
+
+def apply_cli_to_globals(args):
+    """
+    Apply command-line argument values to the module's global configuration
+    variables.
+
+    This function updates the global configuration based on CLI input.
+    Required parameters always overwrite the defaults. Optional flags only
+    override their corresponding global values if explicitly provided.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed CLI arguments from `parse_cli_args()`.
+
+    Effects
+    -------
+    Updates the following global variables:
+        CITY : str
+        TZ : str
+        YEAR : int
+        SHOW_LUMINANCE : bool
+        SHOW_EVENT_TIME : bool
+        USE_EXACT_EVENT_ILLUMINATION : bool
+        COSMETICS_MODE : bool
+    """
+    global CITY, TZ, YEAR
+    global SHOW_LUMINANCE, SHOW_EVENT_TIME
+    global USE_EXACT_EVENT_ILLUMINATION, COSMETICS_MODE
+
+    # Required
+    CITY = args.city
+    TZ = args.tz
+    YEAR = args.year
+
+    # Optional overrides
+    if args.show_luminance:
+        SHOW_LUMINANCE = True
+    if args.hide_luminance:
+        SHOW_LUMINANCE = False
+
+    if args.show_event_time:
+        SHOW_EVENT_TIME = True
+    if args.hide_event_time:
+        SHOW_EVENT_TIME = False
+
+    if args.exact_event_illumination:
+        USE_EXACT_EVENT_ILLUMINATION = True
+    if args.midnight_illumination:
+        USE_EXACT_EVENT_ILLUMINATION = False
+
+    if args.cosmetics:
+        COSMETICS_MODE = True
+    if args.no_cosmetics:
+        COSMETICS_MODE = False
+
 
 
 # ----------------------------------------
@@ -1057,5 +1194,27 @@ td {{
 # MAIN
 # ----------------------------------------
 
+#def main():
 if __name__ == "__main__":
-    write_html(YEAR)
+    args = parse_cli_args()
+    apply_cli_to_globals(args)
+
+    # Now validate CITY and TZ using your existing validator
+    validate_config()
+
+    TZINFO = ZoneInfo(TZ)
+
+    print(f"Generating lunar calendar for {YEAR} — {CITY}")
+    print(f"Timezone: {TZ}")
+
+    events, events_by_month = compute_phase_events_for_year(YEAR)
+
+    write_html(
+        year=YEAR
+    )
+
+    print("Done.")
+
+
+
+
