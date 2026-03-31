@@ -52,10 +52,6 @@ TZ : str
     (e.g., "America/Halifax"). Determines how lunar events are converted
     from UTC to local time.
 
-TZINFO : ZoneInfo
-    Parsed timezone object derived from `TZ`. Used for all local datetime
-    conversions.
-
 SHOW_LUMINANCE : bool
     If True, each calendar day displays the Moon’s illumination percentage.
 
@@ -87,7 +83,6 @@ EVENTS_GLOBAL : list[PhaseEvent] or None
 YEAR: int = 2026
 CITY: str = "New York"
 TZ: str = "America/New_York"
-TZINFO = ZoneInfo(TZ)
 
 SHOW_LUMINANCE: bool = True
 SHOW_EVENT_TIME: bool = True
@@ -100,6 +95,65 @@ ts = load.timescale()
 eph = load("de421.bsp")
 
 EVENTS_GLOBAL = None
+
+
+# ----------------------------------------
+
+
+def validate_config():
+    """Validate timezone and location settings with user-friendly messages."""
+
+    # --- Check if tzdata is installed BEFORE touching ZoneInfo -------------
+    try:
+        import tzdata  # noqa: F401
+    except ImportError:
+        print("\n⚠️  Missing timezone data on this system")
+        print("   Python could not find any IANA timezone database.")
+        print("   This usually means the 'tzdata' package is not installed.")
+        print("\n   To fix this, run:")
+        print("       pip install tzdata")
+        print("\n   Or install your OS timezone package (e.g., 'tzdata' on Linux).")
+        print("   After installing, re-run NoctiCycle.\n")
+        raise RuntimeError("Timezone data not found (tzdata missing).")
+
+    # --- Validate the user-provided timezone (safe now) --------------------
+    try:
+        ZoneInfo(TZ)
+    except Exception:
+        print("\n⚠️  Invalid timezone in configuration")
+        print(f"   You provided: '{TZ}'")
+        print("   This is not a recognized IANA timezone identifier.")
+        print("\n   Examples of valid timezones include:")
+        print("     - America/Halifax")
+        print("     - America/New_York")
+        print("     - Europe/London")
+        print("     - Asia/Tokyo")
+        print("\n   Please update the TZ variable and try again.\n")
+        raise ValueError(f"Invalid timezone: '{TZ}'")
+
+    # --- Validate CITY -----------------------------------------------------
+    if not CITY or not CITY.strip():
+        print("\n⚠️  CITY cannot be empty.")
+        print("   Please set CITY to a real location name, e.g. 'Halifax'.\n")
+        raise ValueError("CITY cannot be empty.")
+
+    if any(char.isdigit() for char in CITY):
+        print("\n⚠️  CITY contains digits")
+        print(f"   You provided: '{CITY}'")
+        print("   City names should not contain numbers.")
+        print("   Example: 'Halifax', 'Toronto', 'Vancouver'\n")
+        raise ValueError(f"Invalid CITY value: '{CITY}'")
+
+    # Optional: warn about capitalization
+    if CITY != CITY.title():
+        print(f"\nℹ️  Note: CITY '{CITY}' is not capitalized normally.")
+        print(f"   Consider using '{CITY.title()}' for nicer output.\n")
+
+    return True
+
+
+validate_config()
+TZINFO = ZoneInfo(TZ)
 
 
 # ----------------------------------------
