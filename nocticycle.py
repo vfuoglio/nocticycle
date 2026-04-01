@@ -820,8 +820,16 @@ def render_illumination_sparkline(values: list[float], width: int = 80, height: 
 # ----------------------------------------
 # HTML GENERATION
 # ----------------------------------------
+
 def month_name(m: int) -> str:
-    """Return the abbreviated month name for a given month number.
+    """
+    Return the month name for a given month number.
+
+    This helper adapts its output based on the active rendering mode:
+    - When COSMETICS_MODE is enabled, the full month name is used
+      (e.g., "January", "February").
+    - When COSMETICS_MODE is disabled (print‑friendly mode), the
+      abbreviated three‑letter form is used (e.g., "Jan", "Feb").
 
     Parameters
     ----------
@@ -831,10 +839,13 @@ def month_name(m: int) -> str:
     Returns
     -------
     str
-        Three‑letter month abbreviation (e.g., "Jan", "Feb").
+        The formatted month name, full or abbreviated depending on
+        the current cosmetic mode.
     """
-    return date(2000, m, 1).strftime("%b")
-
+    if COSMETICS_MODE:
+        return date(2000, m, 1).strftime("%B")   # Full month name
+    else:
+        return date(2000, m, 1).strftime("%b")   # Abbreviated name
 
 def write_html(year: int) -> None:
     """Generate the full lunar calendar HTML document for a given year.
