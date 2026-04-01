@@ -8,6 +8,7 @@ NoctiCycle computes:
 - Exact times of new and full moons (localized to your timezone)
 - Waxing/waning classification
 - Optional per‑day **illumination trend sparklines**
+- Optional rising and setting time
 - SVG moon icons rendered directly from astronomical data
 - A print‑friendly layout or a rich, cosmetic layout
 
@@ -65,6 +66,10 @@ Each day shows a crisp, resolution‑independent moon icon.
 
 Display the Moon’s brightness for each day.
 
+### ✔ Showing rising and setting times 
+
+Show rise and set times.
+
 ### ✔ Optional event times
 
 Show the exact moment of new/full moon on the corresponding day.
@@ -95,11 +100,12 @@ NoctiCycle requires only two external Python packages:
 
 - **Skyfield** — astronomical calculations
 - **tzdata** — timezone definitions for systems without IANA zoneinfo
+- **geopy** — obtain latitues and longtudes via OpenStreetMap (Nominatim)
 
 Install them with:
 
 ```bash
-pip install skyfield tzdata
+pip install skyfield tzdata geopy
 ```
 
 ---
@@ -154,7 +160,7 @@ source .venv/bin/activate
 ### 3. Install dependencies inside the venv
 
 ```bash
-pip install skyfield tzdata
+pip install skyfield tzdata geopy
 ```
 
 ### 4. Run the script
@@ -339,6 +345,31 @@ Share it. Print it. Use it in journals or planners.
     - New/full moon times
     - Trend sparklines
 5. You print it or embed it in your digital planner.
+
+---
+
+# ❓ FAQ
+
+## Why do some days show “--” for moonrise or moonset?
+
+**Short answer**: 
+Because on some calendar days, the Moon simply does not cross the horizon.
+
+**Long answer**: 
+The Moon rises about 50 minutes later each day, and its orbit is tilted relative to Earth. Because of this, several natural situations occur:
+
+    The Moon may rise late at night and the next rise happens after midnight the following day, so one calendar day contains no rise.
+
+    The Moon can stay above the horizon for more than 24 hours, producing a day with no rise or set.
+
+    The Moon can stay below the horizon for more than 24 hours, producing the same effect.
+
+This is normal lunar motion, especially at mid‑northern latitudes.
+When no rise or set occurs between 00:00 and 23:59 local time, the calendar displays `--` or a mix of times and `--`:
+
+```↑ --   ↓ --```
+
+This does not mean the Moon is hidden by daylight — it means it never crossed the horizon during that date.
 
 ---
 

@@ -23,8 +23,10 @@ from typing import List, Dict, Optional
 import math
 import argparse
 
-from skyfield.api import load
+from skyfield.api import load, wgs84
 from skyfield import almanac
+
+from geopy.geocoders import Nominatim
 
 import math
 
@@ -97,6 +99,7 @@ TZ: str = "America/New_York"
 SHOW_LUMINANCE: bool = True
 SHOW_EVENT_TIME: bool = True
 ILLUMINATION_TREND: bool = False
+SHOW_RISE_SET_TIMES: bool = False
 
 USE_EXACT_EVENT_ILLUMINATION: bool = True
 
@@ -108,6 +111,9 @@ eph = load("de421.bsp")
 EVENTS_GLOBAL = None
 TZINFO = None
 
+LAT: float | None = None
+LON: float | None = None
+OBSERVER = None
 
 # ----------------------------------------
 # UTILITIES
@@ -195,6 +201,9 @@ def parse_cli_args():
         Choose whether illumination is computed at the exact event moment
         or at local midnight.
 
+    --show-rise-set-time : bool
+        Enable or disable showing moonrise and moon set times
+
     --print-format : bool
         Use a simplified, print‑friendly layout. When this flag is present,
         cosmetic styling and enhanced visual elements are disabled. The
@@ -247,6 +256,10 @@ def parse_cli_args():
     parser.add_argument("--illumination-trend", action="store_true",
                         help="Enable per-day illumination trend sparkline (default: off)")
 
+    parser.add_argument("--show-rise-set-times", action="store_true",
+                        help="Display moonrise and moonset times for each day.")
+
+
     # Print‑friendly mode (disables cosmetics)
     parser.add_argument(
         "--print-format",
@@ -284,6 +297,8 @@ def apply_cli_to_globals(args):
             Whether to display moon illumination percentages.
         SHOW_EVENT_TIME : bool
             Whether to display exact event times for lunar phases.
+        SHOW_RISE_SET_TIMES : bool
+            Whether to display moonrise and moonset times.
         USE_EXACT_EVENT_ILLUMINATION : bool
             Whether illumination on event days is computed at the exact
             event moment instead of local midnight.
@@ -295,7 +310,7 @@ def apply_cli_to_globals(args):
 
     global CITY, TZ, YEAR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
-    global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, COSMETICS_MODE
+    global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, SHOW_RISE_SET_TIMES, COSMETICS_MODE
 
     # Required
     CITY = args.city
@@ -318,12 +333,114 @@ def apply_cli_to_globals(args):
     if args.midnight_illumination:
         USE_EXACT_EVENT_ILLUMINATION = False
 
+    SHOW_RISE_SET_TIMES = args.show_rise_set_times
+
     # Default is already True at the top of the script.
     # If print-format is requested, disable cosmetics.
     if args.print_format:
         COSMETICS_MODE = False
 
     ILLUMINATION_TREND = args.illumination_trend
+
+def geocode_city(name: str) -> tuple[float, float]:
+    """
+    Resolve a human‑readable city name into geographic coordinates.
+
+    This function uses the OpenStreetMap Nominatim geocoding service
+    (via the `geopy` library) to convert a CITY string into latitude
+    and longitude values. The returned coordinates are used to build
+    the Skyfield observer object required for moonrise and moonset
+    calculations.
+
+    Parameters
+    ----------
+    name : str
+        The city name provided by the user (e.g., "Halifax",
+        "New York", "Tokyo"). The query is passed directly to the
+        geocoding backend.
+
+    Returns
+    -------
+    tuple[float, float]
+        A pair `(lat, lon)` representing the geographic coordinates
+        of the requested city in decimal degrees.
+
+    Notes
+    -----
+    • This function requires an active internet connection unless
+      results are cached externally.
+
+    • Nominatim enforces usage policies and requires a unique
+      `user_agent` string identifying the application. The value
+      "nocticycle" is used here for clarity and compliance.
+
+    • If the city cannot be resolved, a RuntimeError is raised with
+      a descriptive message.
+
+    Raises
+    ------
+    RuntimeError
+        If the geocoding service cannot find a matching location.
+    """
+    geolocator = Nominatim(user_agent="nocticycle")
+    loc = geolocator.geocode(name)
+
+    if loc is None:
+        raise RuntimeError(f"Could not resolve coordinates for city '{name}'")
+
+    return loc.latitude, loc.longitude
+
+def initialize_observer():
+    """
+    Resolve the user's CITY into geographic coordinates and construct
+    the Skyfield observer object used for rise/set calculations.
+
+    This function performs three tasks:
+        1. Geocodes the configured CITY name into latitude and longitude.
+        2. Stores the resulting coordinates in the global LAT and LON
+           variables (initially declared as None).
+        3. Builds a Skyfield `wgs84.latlon()` observer for use in
+           moonrise/moonset computations.
+
+    Notes
+    -----
+    Skyfield requires precise geographic coordinates to compute horizon
+    crossings (moonrise and moonset). Because CITY is provided as a
+    human‑readable string, it must be converted into numeric coordinates
+    via a geocoding function such as `geocode_city()`. This function does
+    not perform geocoding itself; it delegates to whatever geocoding
+    backend the application provides.
+
+    This separation allows LAT, LON, and OBSERVER to be declared at module
+    load time without requiring immediate initialization. They are only
+    populated once CITY and TZ have been validated and finalized.
+
+    Parameters
+    ----------
+    None
+
+    Effects
+    -------
+    LAT : float
+        Latitude of the selected city in decimal degrees.
+    LON : float
+        Longitude of the selected city in decimal degrees.
+    OBSERVER : skyfield.api.Topos
+        A Skyfield observer object representing the user's location.
+
+    Raises
+    ------
+    RuntimeError
+        If the CITY cannot be resolved into coordinates by the geocoding
+        backend.
+    """
+    global LAT, LON, OBSERVER
+
+    # Resolve CITY → (latitude, longitude)
+    LAT, LON = geocode_city(CITY)
+
+    # Construct the Skyfield observer
+    OBSERVER = wgs84.latlon(LAT, LON)
 
 # ----------------------------------------
 # PHASE EVENTS (for bands + names)
@@ -493,7 +610,69 @@ def assign_daily_phases(
 
     return phases
 
+def moon_rise_set_times(d: date):
+    """
+    Compute the Moon’s local rise and set times for a given calendar date.
 
+    This helper determines when the Moon crosses the local horizon on the
+    specified date, returning the times (in HH:MM 24‑hour format) converted
+    into the active IANA timezone (`TZINFO`). If the Moon does not rise or
+    set within the 00:00–23:59 interval of the given date, the corresponding
+    return value is `None`.
+
+    Notes
+    -----
+    The Moon does not necessarily rise and set once per calendar day.
+    Because the Moon rises ~50 minutes later each day and its declination
+    varies significantly, several natural situations can occur:
+
+    • The Moon may rise late at night and the next rise occurs after
+      midnight the following day, resulting in no rise event on the
+      intervening date.
+
+    • The Moon may remain above the horizon for more than 24 hours,
+      producing a day with no rise or set.
+
+    • The Moon may remain below the horizon for more than 24 hours,
+      also producing a day with no rise or set.
+
+    These cases are astronomically normal and are reflected by returning
+    `None` for the missing event.
+
+    Parameters
+    ----------
+    d : date
+        The calendar date for which moonrise and moonset times should be
+        computed.
+
+    Returns
+    -------
+    tuple[str | None, str | None]
+        A pair `(rise, set_)` where:
+            rise : str or None
+                Local moonrise time in "HH:MM" format, or None if no rise
+                occurs on this date.
+            set_ : str or None
+                Local moonset time in "HH:MM" format, or None if no set
+                occurs on this date.
+    """
+    t0 = ts.from_datetime(datetime(d.year, d.month, d.day, 0, 0, tzinfo=TZINFO))
+    t1 = ts.from_datetime(datetime(d.year, d.month, d.day, 23, 59, tzinfo=TZINFO))
+
+    f = almanac.risings_and_settings(eph, eph['moon'], OBSERVER)
+    times, events = almanac.find_discrete(t0, t1, f)
+
+    rise = None
+    set_ = None
+
+    for t, e in zip(times, events):
+        local = t.utc_datetime().replace(tzinfo=ZoneInfo("UTC")).astimezone(TZINFO)
+        if e == 1:   # rising
+            rise = local.strftime("%H:%M")
+        else:        # setting
+            set_ = local.strftime("%H:%M")
+
+    return rise, set_
 
 # ----------------------------------------
 # ILLUMINATION + LUNATION
@@ -954,6 +1133,14 @@ td, th {{
     font-size: 12px;
 }}
 
+.rise-set {{
+    font-size: 10px;
+    color: #88c0d0;
+    margin-top: 2px;
+    opacity: 0.85;
+}}
+
+
 </style>"""
 
     if COSMETICS_MODE:
@@ -1308,11 +1495,25 @@ td {{
                 if SHOW_LUMINANCE:
                     html += f"<div class='brightness'>{illum}%</div>"
 
+                if SHOW_RISE_SET_TIMES:
+                    rise, set_ = moon_rise_set_times(day_date)
+                    rise_set_html = (
+                        f'<div class="rise-set">'
+                        f'↑ {rise if rise else "--"}<br />'
+                        f'↓ {set_ if set_ else "--"}'
+                        f'</div>'
+                    )
+                else:
+                    rise_set_html = ""
+
                 # NEW: insert sparkline here
                 if COSMETICS_MODE and ILLUMINATION_TREND:
                     html += trend_svg
 
                 html += f"<div class='{time_class}'>{event_time_str}</div>"
+
+                html += f"""{rise_set_html}"""
+
                 html += "</div>"  # end moon-wrapper
 
                 html += "</td>"
@@ -1349,6 +1550,10 @@ if __name__ == "__main__":
 
     # Now validate CITY and TZ using your existing validator
     validate_config()
+
+    if SHOW_RISE_SET_TIMES:
+        # Initialize the observer for geopy
+        initialize_observer()
 
     TZINFO = ZoneInfo(TZ)
 
