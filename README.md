@@ -79,6 +79,20 @@ Once generated, the HTML file requires no internet connection.
 
 ---
 
+# 🖼️ Screenshots
+
+#### Default theme
+<a href="screenshots/calendar_2017.png">
+  <img src="screenshots/calendar_2017.png" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+### Print format
+<a href="screenshots/calendar_2017-print.png">
+  <img src="screenshots/calendar_2017-print.png" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+---
+
 # 📦 Installation
 
 NoctiCycle requires only two external Python packages:
