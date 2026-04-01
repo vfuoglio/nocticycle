@@ -32,6 +32,7 @@ import math
 # CONFIG
 # ----------------------------------------
 
+
 """
 Configuration variables controlling NoctiCycle’s behavior.
 
@@ -66,8 +67,10 @@ USE_EXACT_EVENT_ILLUMINATION : bool
     midnight.
 
 COSMETICS_MODE : bool
-    Enables optional visual adjustments to the SVG moon rendering. This
-    affects appearance only, not astronomical accuracy.
+    Controls whether the enhanced visual layout is used. Cosmetics are
+    enabled by default. They are disabled only when the --print-format
+    command-line flag is provided, producing a simplified, print‑friendly
+    layout.
 
 ts : skyfield.api.TimeScale
     Global timescale object used for all astronomical computations.
@@ -79,6 +82,7 @@ EVENTS_GLOBAL : list[PhaseEvent] or None
     Cached list of lunar events for the active year. Populated by
     `compute_phase_events_for_year()` and used by illumination helpers.
 """
+
 
 
 YEAR: int = 2026
@@ -177,13 +181,19 @@ def parse_cli_args():
     --------------
     --show-luminance / --hide-luminance : bool
         Enable or disable moon illumination percentage display.
+
     --show-event-time / --hide-event-time : bool
         Enable or disable event time display for lunar phases.
+
     --exact-event-illumination / --midnight-illumination : bool
         Choose whether illumination is computed at the exact event moment
         or at local midnight.
-    --cosmetics / --no-cosmetics : bool
-        Enable or disable cosmetic SVG enhancements.
+
+    --print-format : bool
+        Use a simplified, print‑friendly layout. When this flag is present,
+        cosmetic styling and enhanced visual elements are disabled. The
+        default behavior (without this flag) is to use the full cosmetic
+        layout.
 
     Returns
     -------
@@ -228,10 +238,12 @@ def parse_cli_args():
     parser.add_argument("--midnight-illumination", action="store_true",
                         help="Compute illumination at local midnight.")
 
-    parser.add_argument("--cosmetics", action="store_true",
-                        help="Enable cosmetic SVG enhancements.")
-    parser.add_argument("--no-cosmetics", action="store_true",
-                        help="Disable cosmetic SVG enhancements.")
+    # Print‑friendly mode (disables cosmetics)
+    parser.add_argument(
+        "--print-format",
+        action="store_true",
+        help="Use a simplified layout suitable for printing."
+    )
 
     return parser.parse_args()
 
@@ -254,13 +266,24 @@ def apply_cli_to_globals(args):
     -------
     Updates the following global variables:
         CITY : str
+            Display name of the selected location.
         TZ : str
+            IANA timezone identifier for the chosen location.
         YEAR : int
+            Calendar year to generate.
         SHOW_LUMINANCE : bool
+            Whether to display moon illumination percentages.
         SHOW_EVENT_TIME : bool
+            Whether to display exact event times for lunar phases.
         USE_EXACT_EVENT_ILLUMINATION : bool
+            Whether illumination on event days is computed at the exact
+            event moment instead of local midnight.
         COSMETICS_MODE : bool
+            Controls whether the enhanced visual layout is used. Cosmetics
+            are enabled by default; they are disabled only when the
+            --print-format flag is provided.
     """
+
     global CITY, TZ, YEAR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
     global USE_EXACT_EVENT_ILLUMINATION, COSMETICS_MODE
@@ -286,9 +309,9 @@ def apply_cli_to_globals(args):
     if args.midnight_illumination:
         USE_EXACT_EVENT_ILLUMINATION = False
 
-    if args.cosmetics:
-        COSMETICS_MODE = True
-    if args.no_cosmetics:
+    # Default is already True at the top of the script.
+    # If print-format is requested, disable cosmetics.
+    if args.print_format:
         COSMETICS_MODE = False
 
 
