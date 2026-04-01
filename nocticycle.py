@@ -66,6 +66,11 @@ USE_EXACT_EVENT_ILLUMINATION : bool
     exact event moment. If False, illumination is always computed at local
     midnight.
 
+ILLUMINATION_TREND : bool
+    If True, each calendar day displays a small illumination trend graph
+    (sparkline) showing illumination change over ±3 days. Disabled by
+    default.
+
 COSMETICS_MODE : bool
     Controls whether the enhanced visual layout is used. Cosmetics are
     enabled by default. They are disabled only when the --print-format
@@ -91,6 +96,7 @@ TZ: str = "America/New_York"
 
 SHOW_LUMINANCE: bool = True
 SHOW_EVENT_TIME: bool = True
+ILLUMINATION_TREND: bool = False
 
 USE_EXACT_EVENT_ILLUMINATION: bool = True
 
@@ -238,6 +244,9 @@ def parse_cli_args():
     parser.add_argument("--midnight-illumination", action="store_true",
                         help="Compute illumination at local midnight.")
 
+    parser.add_argument("--illumination-trend", action="store_true",
+                        help="Enable per-day illumination trend sparkline (default: off)")
+
     # Print‑friendly mode (disables cosmetics)
     parser.add_argument(
         "--print-format",
@@ -286,7 +295,7 @@ def apply_cli_to_globals(args):
 
     global CITY, TZ, YEAR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
-    global USE_EXACT_EVENT_ILLUMINATION, COSMETICS_MODE
+    global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, COSMETICS_MODE
 
     # Required
     CITY = args.city
@@ -314,7 +323,7 @@ def apply_cli_to_globals(args):
     if args.print_format:
         COSMETICS_MODE = False
 
-
+    ILLUMINATION_TREND = args.illumination_trend
 
 # ----------------------------------------
 # PHASE EVENTS (for bands + names)
@@ -595,6 +604,39 @@ def illumination_exact_at_event(ev: PhaseEvent) -> float | None:
 
     return None
 
+def illumination_trend_for_date(center_date: date, window: int = 3) -> list[float]:
+    """
+    Compute a short illumination trend centered on a given date.
+
+    This helper returns illumination percentages for a symmetric window
+    around the target date. For example, a window of 3 yields illumination
+    values for the range:
+        center_date - 3 days  →  center_date + 3 days
+    producing 7 total samples.
+
+    Parameters
+    ----------
+    center_date : date
+        The calendar date around which the illumination trend is computed.
+    window : int, optional
+        Number of days before and after the center date to include.
+        Default is 3.
+
+    Returns
+    -------
+    list of float
+        Illumination percentages (0–100) for each day in the window,
+        ordered chronologically.
+    """
+    values: list[float] = []
+    for offset in range(-window, window + 1):
+        d = center_date + timedelta(days=offset)
+        _, illum = moon_illumination_percent(d)
+        values.append(illum)
+    return values
+
+
+
 # ----------------------------------------
 # SVG MOON (geometry from the other project)
 # ----------------------------------------
@@ -711,6 +753,69 @@ def render_moon_svg(phase: float, size: int = 24) -> str:
         f'{outline}{"".join(paths)}'
         f'</svg>'
     )
+
+def render_illumination_sparkline(values: list[float], width: int = 80, height: int = 18) -> str:
+    """
+    Render a compact SVG Bézier-curve sparkline representing illumination trends.
+
+    The curve is colored based on waxing or waning behavior:
+        • Waxing  → teal (#88c0d0)
+        • Waning  → amber (#d08770)
+
+    Parameters
+    ----------
+    values : list of float
+        Illumination percentages (0–100) sampled over several days.
+    width : int, optional
+        Width of the SVG viewport in pixels. Default is 80.
+    height : int, optional
+        Height of the SVG viewport in pixels. Default is 18.
+
+    Returns
+    -------
+    str
+        SVG markup containing a smoothed Bézier curve sparkline.
+    """
+    if not values:
+        return ""
+
+    n = len(values)
+    if n == 1:
+        x = width / 2
+        y = height - (values[0] / 100.0) * height
+        return (
+            f'<svg class="illum-graph" viewBox="0 0 {width} {height}">'
+            f'<circle cx="{x}" cy="{y}" r="2" fill="#88c0d0" />'
+            f'</svg>'
+        )
+
+    # Determine waxing vs waning
+    waxing = values[-1] > values[0]
+    color = "#88c0d0" if waxing else "#d08770"   # teal vs amber
+
+    # Convert values to coordinates
+    step_x = width / (n - 1)
+    pts = []
+    for i, v in enumerate(values):
+        x = i * step_x
+        y = height - (v / 100.0) * height
+        pts.append((x, y))
+
+    # Build a smooth cubic Bézier path
+    d = f"M {pts[0][0]:.2f},{pts[0][1]:.2f} "
+
+    for i in range(1, n):
+        x0, y0 = pts[i - 1]
+        x1, y1 = pts[i]
+        cx = (x0 + x1) / 2
+        d += f"C {cx:.2f},{y0:.2f} {cx:.2f},{y1:.2f} {x1:.2f},{y1:.2f} "
+
+    return (
+        f'<svg class="illum-graph" viewBox="0 0 {width} {height}">'
+        f'<path d="{d}" stroke="{color}" stroke-width="1.8" fill="none" />'
+        f'</svg>'
+    )
+
 
 # ----------------------------------------
 # HTML GENERATION
@@ -1162,7 +1267,7 @@ td {{
                 html += "<td></td>"
         html += "</tr>\n"
 
-        # Row 2: moon icons + brightness
+        # Row 2: moon icons + brightness + SPARKLINE
         html += "<tr>"
         for d in range(1, 32):
             if d <= days:
@@ -1171,6 +1276,11 @@ td {{
                 frac = moon_phase_fraction(day_date)
                 moon_svg = render_moon_svg(frac, size=24)
                 event_time_str, illum = moon_illumination_percent(day_date)
+
+                trend_svg = ""
+                if COSMETICS_MODE and ILLUMINATION_TREND:
+                    trend_values = illumination_trend_for_date(day_date, window=3)
+                    trend_svg = render_illumination_sparkline(trend_values)
 
                 time_class = "phase-time"
                 if not SHOW_EVENT_TIME:
@@ -1186,6 +1296,10 @@ td {{
 
                 if SHOW_LUMINANCE:
                     html += f"<div class='brightness'>{illum}%</div>"
+
+                # NEW: insert sparkline here
+                if COSMETICS_MODE and ILLUMINATION_TREND:
+                    html += trend_svg
 
                 html += f"<div class='{time_class}'>{event_time_str}</div>"
                 html += "</div>"  # end moon-wrapper
