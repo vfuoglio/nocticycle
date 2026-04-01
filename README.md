@@ -350,6 +350,14 @@ Share it. Print it. Use it in journals or planners.
 
 # ❓ FAQ
 
+## Why does NoctiCycle require both --city and --tz?
+
+Because a city name alone is not enough to determine the correct local time.
+Geocoding gives us latitude and longitude for astronomical calculations, but it does not provide timezone information. Timezones follow political boundaries, not geography, and cities with the same name can exist in different timezones.
+
+NoctiCycle needs the exact IANA timezone (including DST rules) to convert UTC lunar events into accurate local times.
+Providing both --city and --tz ensures that rise/set times, phase events, and illumination values are computed correctly for your location.
+
 ## Why do some days show “--” for moonrise or moonset?
 
 **Short answer**: 
