@@ -1060,6 +1060,12 @@ def write_html(year: int) -> None:
 <title>Lunar Calendar {year} – {CITY}</title>
 <style>
 
+:root {{
+    --waxing-color: #D6C29A;
+    --waning-color: #8A6A45;
+}}
+
+
 body {{
     font-family: Arial;
     font-size: 10px;
@@ -1089,8 +1095,10 @@ td, th {{
 }}
 
 .phase-waxing {{
-    background: #88C0D0;
-    color: #000;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        var(--waxing-color) 100%);
 }}
 
 .phase-full {{
@@ -1099,8 +1107,11 @@ td, th {{
 }}
 
 .phase-waning {{
-    background: #B48EAD;
-    color: #000;
+    background: linear-gradient(
+        to right,
+        var(--waning-color) 0%,
+        rgba(255, 255, 255, 0) 100%
+    );
 }}
 
 .phase-time {{
@@ -1186,7 +1197,7 @@ h1 {{
 
 .month-subtitle {{
     font-size: 10px;
-    color: #88c0d0;
+    color: #D6C29A;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     margin-bottom: 8px;
