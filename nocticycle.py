@@ -1058,13 +1058,16 @@ def write_html(year: int) -> None:
 <head>
 <meta charset="UTF-8">
 <title>Lunar Calendar {year} – {CITY}</title>
+"""
+
+    # --- PRINT CSS (formerly always-on CSS) ---
+    PRINT_CSS = f"""
 <style>
 
 :root {{
     --waxing-color: #D6C29A;
     --waning-color: #8A6A45;
 }}
-
 
 body {{
     font-family: Arial;
@@ -1125,7 +1128,6 @@ td, th {{
     display: none;
 }}
 
-
 .moon-svg {{
     width: 24px;
     height: 24px;
@@ -1151,12 +1153,19 @@ td, th {{
     opacity: 0.85;
 }}
 
+</style>
+"""
 
-</style>"""
-
-    if COSMETICS_MODE:
-        html += f"""
+    # --- COSMETICS CSS (PRINT + Cosmetics overrides) ---
+    COSMETICS_CSS = f"""
 <style>
+
+/* ===== Root variables ===== */
+:root {{
+    --waxing-color: #D6C29A;
+    --waning-color: #8A6A45;
+}}
+
 /* ===== Layout & background ===== */
 body {{
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -1243,6 +1252,37 @@ td {{
     margin-bottom: 2px;
 }}
 
+/* ===== Phase badges (from print CSS) ===== */
+.phase {{
+    font-weight: bold;
+    color: #fff;
+    border-radius: 4px;
+}}
+
+.phase-new {{
+    background: #2E3440;
+}}
+
+.phase-waxing {{
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        var(--waxing-color) 100%);
+}}
+
+.phase-full {{
+    background: #EBCB8B;
+    color: #000;
+}}
+
+.phase-waning {{
+    background: linear-gradient(
+        to right,
+        var(--waning-color) 0%,
+        rgba(255, 255, 255, 0) 100%
+    );
+}}
+
 /* ===== Moon icon, halo, depth ===== */
 .moon-wrapper {{
     display: flex;
@@ -1301,22 +1341,18 @@ td {{
     background: #3b4252;
 }}
 
-/* Waxing: gradient towards full (gold) */
 .phase-bar-waxing {{
     background: linear-gradient(to right, #3b4252 0%, #88c0d0 35%, #ebcb8b 100%);
 }}
 
-/* Full: bright gold band */
 .phase-bar-full {{
     background: linear-gradient(to right, #d08770 0%, #ebcb8b 50%, #d08770 100%);
 }}
 
-/* Waning: gradient away from full towards dark */
 .phase-bar-waning {{
     background: linear-gradient(to right, #ebcb8b 0%, #88c0d0 65%, #3b4252 100%);
 }}
 
-/* New: very dark band with subtle blue hint */
 .phase-bar-new {{
     background: linear-gradient(to right, #2e3440 0%, #3b4252 50%, #2e3440 100%);
 }}
@@ -1342,7 +1378,7 @@ td {{
     color: #bf616a;
 }}
 
-/* ===== Mini illumination trend graph (placeholder styling) ===== */
+/* ===== Mini illumination trend graph ===== */
 .illum-graph {{
     margin-top: 4px;
     height: 18px;
@@ -1413,8 +1449,14 @@ td {{
     text-transform: uppercase;
     letter-spacing: 0.14em;
 }}
+
 </style>
 """
+
+    if COSMETICS_MODE:
+        html += COSMETICS_CSS
+    else:
+        html += PRINT_CSS
 
     html += """
 </head>
