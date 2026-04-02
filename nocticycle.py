@@ -209,6 +209,9 @@ def parse_cli_args():
         default behavior (without this flag) is to use the full cosmetic
         layout.
 
+    --output / -o : str
+        Optional full path to the output HTML file.
+
     Returns
     -------
     argparse.Namespace
@@ -257,6 +260,11 @@ def parse_cli_args():
 
     parser.add_argument("--show-rise-set-times", action="store_true",
                         help="Display moonrise and moonset times for each day.")
+
+    parser.add_argument("-o", "--output",type=str,
+                        help="Optional full path to the output HTML file."
+    )
+
 
 
     # Print‑friendly mode (disables cosmetics)
@@ -533,6 +541,77 @@ def load_css(style: str) -> str:
         )
 
     return css
+
+def validate_output_path(path: str) -> str:
+    """
+    Validate that the user‑provided output path is a writable HTML file.
+
+    This function is used to support the optional `-o/--output` CLI
+    argument, allowing the user to specify a custom output location for
+    the generated HTML file. The function ensures that the path is
+    syntactically valid, points to an existing directory, and that the
+    file can be created or overwritten.
+
+    Parameters
+    ----------
+    path : str
+        Full filesystem path to the desired output HTML file. The path
+        must end with `.html` or `.htm`. Relative paths are resolved to
+        absolute paths.
+
+    Returns
+    -------
+    str
+        The normalized absolute path to the output file, guaranteed to
+        be writable.
+
+    Raises
+    ------
+    ValueError
+        If the path does not end with `.html`/`.htm`, if the directory
+        does not exist, or if the file cannot be created due to
+        permission or I/O issues.
+
+    Notes
+    -----
+    • This function does not create the file; it only verifies that it
+      *can* be created.
+
+    • Directory existence is required; directories are not created
+      automatically.
+
+    • Write permission is checked using `os.access()` and by attempting
+      to open the file in append mode.
+
+    • The returned path is always absolute, even if the user supplied a
+      relative path.
+    """
+    import os
+
+    # Must end with .html or .htm
+    if not path.lower().endswith((".html", ".htm")):
+        raise ValueError("Output file must end with .html or .htm")
+
+    abs_path = os.path.abspath(path)
+    directory = os.path.dirname(abs_path)
+
+    # Directory must exist
+    if not os.path.isdir(directory):
+        raise ValueError(f"Directory does not exist: {directory}")
+
+    # Directory must be writable
+    if not os.access(directory, os.W_OK):
+        raise ValueError(f"No write permission in directory: {directory}")
+
+    # Attempt to open the file (append mode does not destroy contents)
+    try:
+        with open(abs_path, "a", encoding="utf-8"):
+            pass
+    except Exception as e:
+        raise ValueError(f"Cannot create output file: {e}")
+
+    return abs_path
+
 
 # ----------------------------------------
 # PHASE EVENTS (for bands + names)
@@ -1118,7 +1197,7 @@ def month_name(m: int) -> str:
     else:
         return date(2000, m, 1).strftime("%b")   # Abbreviated name
 
-def write_html(year: int) -> None:
+def write_html(year: int, output_path: str) -> None:
     """Generate the full lunar calendar HTML document for a given year.
 
     This function orchestrates:
@@ -1127,8 +1206,7 @@ def write_html(year: int) -> None:
     - rendering SVG moon icons,
     - and assembling the complete HTML output.
 
-    The resulting HTML file is written to disk as:
-        lunar_calendar_<year>.html
+    The resulting HTML file is written to disk at the path specified in output_path
 
     Parameters
     ----------
@@ -1283,10 +1361,10 @@ def write_html(year: int) -> None:
 
     html += "</body></html>"
 
-    with open(f"lunar_calendar_{year}.html", "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    print("Generated lunar_calendar.html")
+    print(f"Generated {output_path}")
 
 
 
@@ -1298,6 +1376,16 @@ def write_html(year: int) -> None:
 if __name__ == "__main__":
     args = parse_cli_args()
     apply_cli_to_globals(args)
+
+    if args.output:
+        try:
+            output_path = validate_output_path(args.output)
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+    else:
+        # Your existing default behavior
+        output_path = os.path.join(BASE_DIR, f"lunar_calendar_{year}.html")
 
     # Now validate CITY and TZ using your existing validator
     validate_config()
@@ -1314,7 +1402,8 @@ if __name__ == "__main__":
     events, events_by_month = compute_phase_events_for_year(YEAR)
 
     write_html(
-        year=YEAR
+        YEAR,
+        output_path
     )
 
     print("Done.")

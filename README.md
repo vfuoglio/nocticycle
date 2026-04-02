@@ -233,9 +233,10 @@ ILLUMINATION_TREND = False
 --tz "Your/Timezone"
 ```
 
-### Optional enhancements
+### Optional parameters
 
 ```
+-o, --output
 --illumination-trend
 --show-event-time
 --show-luminance
