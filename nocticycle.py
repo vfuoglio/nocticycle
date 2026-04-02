@@ -22,13 +22,12 @@ from typing import List, Dict, Optional
 
 import math
 import argparse
+import os
 
 from skyfield.api import load, wgs84
 from skyfield import almanac
 
 from geopy.geocoders import Nominatim
-
-import math
 
 # ----------------------------------------
 # CONFIG
@@ -441,6 +440,99 @@ def initialize_observer():
 
     # Construct the Skyfield observer
     OBSERVER = wgs84.latlon(LAT, LON)
+
+def load_css(style: str) -> str:
+    """
+    Load and validate a CSS stylesheet from the project's `css/` directory.
+
+    This function supports the theme system by reading external `.css`
+    files such as `css/print.css`, `css/default.css`, or any future
+    theme file. The selected stylesheet is returned as a raw string and
+    later injected directly into the generated HTML inside a <style>
+    block, keeping the final document fully self‑contained and printable.
+
+    The function performs lightweight validation to catch common
+    mistakes early (such as empty files, accidental HTML markup, or
+    corrupted binary content) without attempting full CSS parsing.
+
+    Parameters
+    ----------
+    style : str
+        The name of the CSS theme to load (e.g., "default", "print").
+        The function will automatically construct the full path:
+        `<script_dir>/css/<style>.css`.
+
+    Returns
+    -------
+    str
+        The validated CSS content exactly as stored on disk.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the CSS file does not exist.
+
+    ValueError
+        If the file is empty, contains HTML markup, appears corrupted,
+        or does not contain any valid CSS blocks.
+
+    OSError
+        If the file cannot be read due to permissions or I/O errors.
+
+    Notes
+    -----
+    • Validation is intentionally minimal: it checks for structural
+      sanity but does not attempt to enforce CSS correctness.
+
+    • This function ensures that theme files are safe to embed inline
+      in the final HTML output.
+
+    • Additional themes can be added simply by placing new `.css`
+      files in the `css/` directory.
+    """
+    import os
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    css_path = os.path.join(BASE_DIR, "css", f"{style}.css")
+
+    # --- Read file ---
+    with open(css_path, "r", encoding="utf-8") as f:
+        css = f.read()
+
+    # --- Validation rules ---
+
+    # 1. Must not be empty or whitespace-only
+    if not css.strip():
+        raise ValueError(f"CSS file '{css_path}' is empty or whitespace-only.")
+
+    # 2. Must not contain HTML tags (common mistake when editing)
+    lowered = css.lower()
+    forbidden_html = ("<html", "<body", "<head", "<style", "<script")
+    if any(tag in lowered for tag in forbidden_html):
+        raise ValueError(
+            f"CSS file '{css_path}' appears to contain HTML or script markup. "
+            "CSS files must contain only raw CSS rules."
+        )
+
+    # 3. Must contain at least one CSS block
+    if "{" not in css or "}" not in css:
+        raise ValueError(
+            f"CSS file '{css_path}' does not appear to contain any CSS blocks."
+        )
+
+    # 4. Detect null bytes or binary garbage
+    if "\x00" in css:
+        raise ValueError(
+            f"CSS file '{css_path}' contains null bytes and may be corrupted."
+        )
+
+    # 5. Warn about extremely large CSS files
+    if len(css) > 500_000:  # 500 KB threshold
+        raise ValueError(
+            f"CSS file '{css_path}' is unexpectedly large and may be invalid."
+        )
+
+    return css
 
 # ----------------------------------------
 # PHASE EVENTS (for bands + names)
@@ -1052,417 +1144,23 @@ def write_html(year: int) -> None:
     events, events_by_month = compute_phase_events_for_year(year)
     EVENTS_GLOBAL = events  # retained for illumination lookups
 
+    if COSMETICS_MODE:
+        css = load_css("default")
+    else:
+        css = load_css("print")
 
     html = f"""
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Lunar Calendar {year} – {CITY}</title>
-"""
-
-    # --- PRINT CSS (formerly always-on CSS) ---
-    PRINT_CSS = f"""
 <style>
-
-:root {{
-    --waxing-color: #D6C29A;
-    --waning-color: #8A6A45;
-}}
-
-body {{
-    font-family: Arial;
-    font-size: 10px;
-    margin: 10px;
-}}
-
-table {{
-    border-collapse: collapse;
-    width: 100%;
-    table-layout: fixed;
-}}
-
-td, th {{
-    border: 1px solid #ccc;
-    text-align: center;
-    padding: 2px;
-}}
-
-.phase {{
-    font-weight: bold;
-    color: #fff;
-    border-radius: 4px;
-}}
-
-.phase-new {{
-    background: #2E3440;
-}}
-
-.phase-waxing {{
-    background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0) 0%,
-        var(--waxing-color) 100%);
-}}
-
-.phase-full {{
-    background: #EBCB8B;
-    color: #000;
-}}
-
-.phase-waning {{
-    background: linear-gradient(
-        to right,
-        var(--waning-color) 0%,
-        rgba(255, 255, 255, 0) 100%
-    );
-}}
-
-.phase-time {{
-    font-size: 12px;
-    height: 14px;
-    line-height: 14px;
-    opacity: 0.8;
-}}
-
-.phase-time.hidden {{
-    display: none;
-}}
-
-.moon-svg {{
-    width: 24px;
-    height: 24px;
-}}
-
-.light {{ fill: #fdfdfd; }}
-.shadow {{ fill: #111111; }}
-
-.moon-outline {{
-    fill: none;
-    stroke: #444;
-    stroke-width: 0.8;
-}}
-
-.brightness {{
-    font-size: 12px;
-}}
-
-.rise-set {{
-    font-size: 10px;
-    color: #88c0d0;
-    margin-top: 2px;
-    opacity: 0.85;
-}}
-
+{css}
 </style>
-"""
-
-    # --- COSMETICS CSS (PRINT + Cosmetics overrides) ---
-    COSMETICS_CSS = f"""
-<style>
-
-/* ===== Root variables ===== */
-:root {{
-    --waxing-color: #D6C29A;
-    --waning-color: #8A6A45;
-}}
-
-/* ===== Layout & background ===== */
-body {{
-    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 11px;
-    color: #e5e9f0;
-    background: radial-gradient(circle at top, #2e3440 0%, #1b1f27 45%, #05060a 100%);
-    margin: 16px;
-}}
-
-h1 {{
-    font-family: "Merriweather", "Georgia", serif;
-    font-size: 28px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #eceff4;
-    text-align: center;
-    margin-bottom: 18px;
-}}
-
-/* ===== Month cards ===== */
-.month-block {{
-    background: rgba(15, 18, 26, 0.96);
-    border-radius: 12px;
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
-    padding: 12px 14px 14px 14px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(136, 192, 208, 0.18);
-}}
-
-.month-name {{
-    font-family: "Merriweather", "Georgia", serif;
-    font-size: 22px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #e5e9f0;
-    margin: 0 0 8px 2px;
-}}
-
-.month-subtitle {{
-    font-size: 10px;
-    color: #D6C29A;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    margin-bottom: 8px;
-}}
-
-/* ===== Table ===== */
-table {{
-    border-collapse: separate;
-    border-spacing: 2px;
-    width: 100%;
-    table-layout: fixed;
-}}
-
-th {{
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #d8dee9;
-    padding: 4px 2px;
-    border: none;
-    background: transparent;
-}}
-
-td {{
-    padding: 6px 4px;
-    border-radius: 8px;
-    background: radial-gradient(circle at top, #2b303b 0%, #191d24 60%, #111318 100%);
-    border: 1px solid rgba(67, 76, 94, 0.9);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
-    vertical-align: top;
-}}
-
-.day-cell {{
-    position: relative;
-}}
-
-.day-number {{
-    font-size: 11px;
-    font-weight: 600;
-    color: #e5e9f0;
-    text-align: left;
-    margin-bottom: 2px;
-}}
-
-/* ===== Phase badges (from print CSS) ===== */
-.phase {{
-    font-weight: bold;
-    color: #fff;
-    border-radius: 4px;
-}}
-
-.phase-new {{
-    background: #2E3440;
-}}
-
-.phase-waxing {{
-    background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0) 0%,
-        var(--waxing-color) 100%);
-}}
-
-.phase-full {{
-    background: #EBCB8B;
-    color: #000;
-}}
-
-.phase-waning {{
-    background: linear-gradient(
-        to right,
-        var(--waning-color) 0%,
-        rgba(255, 255, 255, 0) 100%
-    );
-}}
-
-/* ===== Moon icon, halo, depth ===== */
-.moon-wrapper {{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 1px;
-    margin-top: 2px;
-}}
-
-.moon-svg {{
-    width: 32px;
-    height: 32px;
-    filter: drop-shadow(0 0 6px rgba(235, 203, 139, 0.55));
-}}
-
-.moon-outline {{
-    fill: none;
-    stroke: #4c566a;
-    stroke-width: 0.9;
-}}
-
-.light {{
-    fill: #eceff4;
-}}
-
-.shadow {{
-    fill: #2e3440;
-}}
-
-/* ===== Luminance & time ===== */
-.brightness {{
-    font-size: 11px;
-    color: #e5e9f0;
-    opacity: 0.9;
-}}
-
-.phase-time {{
-    font-size: 10px;
-    height: 14px;
-    line-height: 14px;
-    opacity: 0.75;
-    color: #88c0d0;
-}}
-
-.phase-time.hidden {{
-    display: none;
-}}
-
-/* ===== Phase gradient bar ===== */
-.phase-bar {{
-    margin-top: 3px;
-    height: 4px;
-    border-radius: 999px;
-    overflow: hidden;
-    background: #3b4252;
-}}
-
-.phase-bar-waxing {{
-    background: linear-gradient(to right, #3b4252 0%, #88c0d0 35%, #ebcb8b 100%);
-}}
-
-.phase-bar-full {{
-    background: linear-gradient(to right, #d08770 0%, #ebcb8b 50%, #d08770 100%);
-}}
-
-.phase-bar-waning {{
-    background: linear-gradient(to right, #ebcb8b 0%, #88c0d0 65%, #3b4252 100%);
-}}
-
-.phase-bar-new {{
-    background: linear-gradient(to right, #2e3440 0%, #3b4252 50%, #2e3440 100%);
-}}
-
-/* ===== Moonrise / moonset ===== */
-.moonrise-set {{
-    margin-top: 3px;
-    font-size: 9px;
-    color: #d8dee9;
-    opacity: 0.8;
-}}
-
-.moonrise-set span {{
-    display: inline-block;
-    margin: 0 2px;
-}}
-
-.moonrise-icon {{
-    color: #a3be8c;
-}}
-
-.moonset-icon {{
-    color: #bf616a;
-}}
-
-/* ===== Mini illumination trend graph ===== */
-.illum-graph {{
-    margin-top: 4px;
-    height: 18px;
-    width: 100%;
-    opacity: 0.85;
-}}
-
-/* ===== Legend & seasons ===== */
-.legend {{
-    margin-top: 18px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: rgba(15, 18, 26, 0.96);
-    border: 1px solid rgba(67, 76, 94, 0.9);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
-    font-size: 10px;
-    color: #e5e9f0;
-}}
-
-.legend-title {{
-    font-family: "Merriweather", "Georgia", serif;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: #88c0d0;
-    margin-bottom: 6px;
-}}
-
-.legend-row {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-}}
-
-.legend-item {{
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-bottom: 4px;
-}}
-
-.legend-swatch {{
-    width: 14px;
-    height: 6px;
-    border-radius: 999px;
-}}
-
-.legend-swatch-full {{
-    background: linear-gradient(to right, #d08770 0%, #ebcb8b 50%, #d08770 100%);
-}}
-
-.legend-swatch-new {{
-    background: linear-gradient(to right, #2e3440 0%, #3b4252 50%, #2e3440 100%);
-}}
-
-.legend-swatch-waxing {{
-    background: linear-gradient(to right, #3b4252 0%, #88c0d0 35%, #ebcb8b 100%);
-}}
-
-.legend-swatch-waning {{
-    background: linear-gradient(to right, #ebcb8b 0%, #88c0d0 65%, #3b4252 100%);
-}}
-
-.season-marker {{
-    font-size: 9px;
-    color: #a3be8c;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-}}
-
-</style>
-"""
-
-    if COSMETICS_MODE:
-        html += COSMETICS_CSS
-    else:
-        html += PRINT_CSS
-
-    html += """
 </head>
 <body>
 
-<h1>Lunar Calendar {year} – {city}</h1>""".format(year=year, city=CITY)
+<h1>Lunar Calendar {year} – {CITY}</h1>"""
 
     # Only open the giant table when NOT in cosmetic mode
     if not COSMETICS_MODE:

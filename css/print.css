@@ -1,0 +1,89 @@
+
+:root {
+    --waxing-color: #D6C29A;
+    --waning-color: #8A6A45;
+}
+
+body {
+    font-family: Arial;
+    font-size: 10px;
+    margin: 10px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+}
+
+td, th {
+    border: 1px solid #ccc;
+    text-align: center;
+    padding: 2px;
+}
+
+.phase {
+    font-weight: bold;
+    color: #fff;
+    border-radius: 4px;
+}
+
+.phase-new {
+    background: #2E3440;
+}
+
+.phase-waxing {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+                                var(--waxing-color) 100%);
+}
+
+.phase-full {
+    background: #EBCB8B;
+    color: #000;
+}
+
+.phase-waning {
+    background: linear-gradient(
+        to right,
+        var(--waning-color) 0%,
+                                rgba(255, 255, 255, 0) 100%
+    );
+}
+
+.phase-time {
+    font-size: 12px;
+    height: 14px;
+    line-height: 14px;
+    opacity: 0.8;
+}
+
+.phase-time.hidden {
+    display: none;
+}
+
+.moon-svg {
+    width: 24px;
+    height: 24px;
+}
+
+.light { fill: #fdfdfd; }
+.shadow { fill: #111111; }
+
+.moon-outline {
+    fill: none;
+    stroke: #444;
+    stroke-width: 0.8;
+}
+
+.brightness {
+    font-size: 12px;
+}
+
+.rise-set {
+    font-size: 10px;
+    color: #88c0d0;
+    margin-top: 2px;
+    opacity: 0.85;
+}
