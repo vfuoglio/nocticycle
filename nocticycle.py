@@ -1392,7 +1392,7 @@ if __name__ == "__main__":
             print(f"Error: {e}")
             sys.exit(1)
     else:
-        output_path = os.path.join(BASE_DIR, f"lunar_calendar_{YEAR}.html")
+        output_path = os.path.join(BASE_DIR, f"lunar_calendar_{CITY}_{YEAR}.html")
 
     validate_config()
 
