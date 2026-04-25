@@ -1,7 +1,8 @@
-
 :root {
-    --waxing-color: #D6C29A;
-    --waning-color: #8A6A45;
+    --waxing-color: #000000;
+    --waning-color: #000000;
+    --full-color: #EBCB8B;
+    --new-color: #2E3440;
 }
 
 body {
@@ -17,9 +18,13 @@ table {
 }
 
 td, th {
-    border: 1px solid #ccc;
+    border: 0px solid #ccc;
     text-align: center;
     padding: 2px;
+}
+
+th {
+    font-weight: bold;
 }
 
 .phase {
@@ -29,26 +34,27 @@ td, th {
 }
 
 .phase-new {
-    background: #2E3440;
+    background:  var(--new-color)
 }
 
 .phase-waxing {
     background: linear-gradient(
         to right,
-        rgba(255, 255, 255, 0) 0%,
-                                var(--waxing-color) 100%);
+        var(--new-color) 0%,
+                                var(--full-color) 100%
+    );
 }
 
 .phase-full {
-    background: #EBCB8B;
+    background:  var(--full-color);
     color: #000;
 }
 
 .phase-waning {
     background: linear-gradient(
         to right,
-        var(--waning-color) 0%,
-                                rgba(255, 255, 255, 0) 100%
+        var(--full-color) 0%,
+                                var(--new-color) 100%
     );
 }
 
