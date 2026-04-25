@@ -114,12 +114,16 @@ LAT: float | None = None
 LON: float | None = None
 OBSERVER = None
 
+BASE_DIR = None
+
 # ----------------------------------------
 # UTILITIES
 # ----------------------------------------
 
 def validate_config():
     """Validate timezone and location settings with user-friendly messages."""
+
+    global BASE_DIR
 
     # --- Check if tzdata is installed BEFORE touching ZoneInfo -------------
     try:
@@ -315,7 +319,7 @@ def apply_cli_to_globals(args):
             --print-format flag is provided.
     """
 
-    global CITY, TZ, YEAR
+    global CITY, TZ, YEAR, BASE_DIR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
     global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, SHOW_RISE_SET_TIMES, COSMETICS_MODE
 
@@ -348,6 +352,8 @@ def apply_cli_to_globals(args):
         COSMETICS_MODE = False
 
     ILLUMINATION_TREND = args.illumination_trend
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def geocode_city(name: str) -> tuple[float, float]:
     """
@@ -500,7 +506,8 @@ def load_css(style: str) -> str:
     """
     import os
 
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    global BASE_DIR
+
     css_path = os.path.join(BASE_DIR, "css", f"{style}.css")
 
     # --- Read file ---
@@ -1374,6 +1381,7 @@ def write_html(year: int, output_path: str) -> None:
 
 #def main():
 if __name__ == "__main__":
+
     args = parse_cli_args()
     apply_cli_to_globals(args)
 
@@ -1384,10 +1392,8 @@ if __name__ == "__main__":
             print(f"Error: {e}")
             sys.exit(1)
     else:
-        # Your existing default behavior
-        output_path = os.path.join(BASE_DIR, f"lunar_calendar_{year}.html")
+        output_path = os.path.join(BASE_DIR, f"lunar_calendar_{YEAR}.html")
 
-    # Now validate CITY and TZ using your existing validator
     validate_config()
 
     if SHOW_RISE_SET_TIMES:
