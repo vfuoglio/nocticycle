@@ -1,8 +1,10 @@
 
 /* ===== Root variables ===== */
 :root {
-    --waxing-color: #D6C29A;
-    --waning-color: #8A6A45;
+    --waxing-color: #000000;
+    --waning-color: #000000;
+    --full-color: #EBCB8B;
+    --new-color: #2E3440;
 }
 
 /* ===== Layout & background ===== */
@@ -96,30 +98,35 @@ td {
     font-weight: bold;
     color: #fff;
     border-radius: 4px;
+    padding: 0 8px
 }
 
 .phase-new {
-    background: #2E3440;
+    background:  var(--new-color);
+    text-align: center
 }
 
 .phase-waxing {
     background: linear-gradient(
         to right,
-        rgba(255, 255, 255, 0) 0%,
-                                var(--waxing-color) 100%);
+        var(--new-color) 0%,
+                                var(--full-color) 100%
+    );
 }
 
 .phase-full {
-    background: #EBCB8B;
+    background:  var(--full-color);
     color: #000;
+    text-align: center
 }
 
 .phase-waning {
     background: linear-gradient(
         to right,
-        var(--waning-color) 0%,
-                                rgba(255, 255, 255, 0) 100%
+        var(--full-color) 0%,
+                                var(--new-color) 100%
     );
+    color: #000
 }
 
 /* ===== Moon icon, halo, depth ===== */
