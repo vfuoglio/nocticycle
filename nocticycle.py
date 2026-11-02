@@ -25,11 +25,14 @@ import argparse
 import json
 import os
 import sys
+from html import escape as html_escape
 
 from skyfield.api import load, wgs84
 from skyfield import almanac
 
 from geopy.geocoders import Nominatim
+
+import traditions
 
 # ----------------------------------------
 # CONFIG
@@ -102,6 +105,7 @@ SHOW_EVENT_TIME: bool = True
 ILLUMINATION_TREND: bool = False
 SHOW_RISE_SET_TIMES: bool = False
 SHOW_QUARTERS: bool = False
+TRADITION: str | None = None
 
 USE_EXACT_EVENT_ILLUMINATION: bool = True
 
@@ -228,6 +232,10 @@ def parse_cli_args():
     --show-rise-set-time : bool
         Enable or disable showing moonrise and moon set times
 
+    --tradition : str
+        Annotate each day with a cultural lunar tradition: maori, hindu or
+        wiccan (interactive layout only).
+
     --show-quarters : bool
         Mark first-quarter and last-quarter days in the calendar.
 
@@ -303,6 +311,11 @@ def parse_cli_args():
 
     parser.add_argument("--show-rise-set-times", action="store_true",
                         help="Display moonrise and moonset times for each day.")
+
+    parser.add_argument("--tradition", choices=traditions.TRADITION_CHOICES, default=None,
+                        help="Annotate every day with a cultural lunar calendar: 'maori' "
+                             "(Maramataka nights), 'hindu' (Panchang tithi) or 'wiccan' "
+                             "(esbat phases). Not available with --print-format.")
 
     parser.add_argument("--show-quarters", action="store_true",
                         help="Mark first-quarter and last-quarter days (with their times).")
@@ -391,7 +404,7 @@ def apply_cli_to_globals(args):
     global CITY, TZ, YEAR, BASE_DIR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
     global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, SHOW_RISE_SET_TIMES, COSMETICS_MODE
-    global SHOW_QUARTERS, PAPER, PRINT_STYLE, PRINT_LAYOUT
+    global SHOW_QUARTERS, PAPER, PRINT_STYLE, PRINT_LAYOUT, TRADITION
 
     # Required
     CITY = args.city
@@ -416,6 +429,7 @@ def apply_cli_to_globals(args):
 
     SHOW_RISE_SET_TIMES = args.show_rise_set_times
     SHOW_QUARTERS = args.show_quarters
+    TRADITION = args.tradition
     PAPER = args.paper
     PRINT_STYLE = args.print_style
     PRINT_LAYOUT = args.print_layout
@@ -1319,13 +1333,66 @@ def phase_name_for_date(d: date, frac: float) -> str:
     return "Waning Crescent"
 
 
-def moon_age_days(d: date) -> float | None:
-    """Days elapsed since the last new moon, measured at local noon of `d`."""
-    noon = datetime(d.year, d.month, d.day, 12, 0, tzinfo=TZINFO)
-    previous = [ev for ev in EVENTS_GLOBAL or [] if ev.kind == "new" and ev.dt <= noon]
+def moon_age_at(moment: datetime) -> float | None:
+    """Days elapsed since the last new moon at the given local datetime."""
+    previous = [ev for ev in EVENTS_GLOBAL or [] if ev.kind == "new" and ev.dt <= moment]
     if not previous:
         return None
-    return round((noon - previous[-1].dt).total_seconds() / 86400, 1)
+    return (moment - previous[-1].dt).total_seconds() / 86400
+
+
+def moon_age_days(d: date) -> float | None:
+    """Days elapsed since the last new moon, measured at local noon of `d`."""
+    age = moon_age_at(datetime(d.year, d.month, d.day, 12, 0, tzinfo=TZINFO))
+    return None if age is None else round(age, 1)
+
+
+# ----------------------------------------
+# CULTURAL TRADITIONS
+# ----------------------------------------
+
+def tithi_for_date(d: date) -> int:
+    """Return the tithi (1-30) prevailing at local sunrise on `d`.
+
+    A tithi is each 12 degrees of the Moon's elongation from the Sun. When
+    the location is known the sunrise instant is used; otherwise 06:00.
+    """
+    when = None
+    if OBSERVER is not None:
+        t0 = ts.from_datetime(datetime(d.year, d.month, d.day, 0, 0, tzinfo=TZINFO))
+        t1 = ts.from_datetime(datetime(d.year, d.month, d.day, 0, 0, tzinfo=TZINFO) + timedelta(days=1))
+        times, events = almanac.find_discrete(t0, t1, almanac.sunrise_sunset(eph, OBSERVER))
+        for t, e in zip(times, events):
+            if e == 1:           # sunrise
+                when = t
+                break
+    if when is None:
+        when = ts.from_datetime(datetime(d.year, d.month, d.day, 6, 0, tzinfo=TZINFO))
+
+    degrees = almanac.moon_phase(eph, when).degrees % 360
+    return int(degrees // 12) + 1
+
+
+def tradition_item_for_day(tradition: str, d: date, phase_name: str, illum: float) -> dict:
+    """Return the cultural-calendar entry (see traditions.py) for one day."""
+    if tradition == "maori":
+        # Nights begin at dusk, so the night is counted at 18:00 local time.
+        age = moon_age_at(datetime(d.year, d.month, d.day, 18, 0, tzinfo=TZINFO))
+        return traditions.maori_item(int(age) + 1 if age is not None else 1)
+
+    if tradition == "hindu":
+        return traditions.hindu_item(tithi_for_date(d))
+
+    # wiccan
+    if phase_name == "New Moon" or illum <= 2:
+        return traditions.wiccan_item("dark")
+    if phase_name == "Full Moon":
+        return traditions.wiccan_item("peak")
+    if phase_name == "Waxing Crescent":
+        return traditions.wiccan_item("initiate")
+    if phase_name in ("First Quarter", "Waxing Gibbous"):
+        return traditions.wiccan_item("build", phase_name)
+    return traditions.wiccan_item("release", phase_name)
 
 
 def js_json(obj) -> str:
@@ -1462,6 +1529,8 @@ def write_html(year: int, output_path: str) -> None:
         return
 
     css = load_css("default")
+    if TRADITION:
+        css += "\n" + load_css("traditions") + "\n" + traditions.tradition_css(TRADITION)
 
     html = f"""
 <html lang="en">
@@ -1473,11 +1542,15 @@ def write_html(year: int, output_path: str) -> None:
 {css}
 </style>
 </head>
-<body>
+<body{f' class="trad-{TRADITION}"' if TRADITION else ''}>
 
 <h1>Lunar Calendar {year} – {CITY}</h1>"""
 
     day_data: Dict[str, dict] = {}
+    trad_items: Dict[str, dict] = {}
+
+    if TRADITION:
+        html += traditions.banner_html(TRADITION)
 
     if COSMETICS_MODE:
         html += '<div id="next-events" class="next-events" hidden></div>'
@@ -1497,7 +1570,7 @@ def write_html(year: int, output_path: str) -> None:
             html += f"""
             <div class="month-block">
                 <div class="month-name">{month_name(m)}</div>
-                <div class="month-subtitle">Lunar Phases</div>
+                <div class="month-subtitle">{traditions.TRADITIONS[TRADITION]["subtitle"] if TRADITION else "Lunar Phases"}</div>
                 <div class="weekdays" aria-hidden="true">
                     <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                 </div>
@@ -1547,7 +1620,6 @@ def write_html(year: int, output_path: str) -> None:
 
                 frac = moon_phase_fraction(day_date)
                 moon_svg = render_moon_svg(frac, size=24, mirror=is_southern_hemisphere())
-                event_time_str, illum = moon_illumination_percent(day_date)
 
                 trend_svg = ""
                 if COSMETICS_MODE and ILLUMINATION_TREND:
@@ -1561,9 +1633,18 @@ def write_html(year: int, output_path: str) -> None:
                 # Sunday-first weekday index; only used by the narrow-screen grid
                 # layout to offset the first day of the month.
                 dow = (day_date.weekday() + 1) % 7
+                event_time_str, illum = moon_illumination_percent(day_date)
+                phase_name = phase_name_for_date(day_date, frac)
+
+                trad_item = None
+                if TRADITION:
+                    trad_item = tradition_item_for_day(TRADITION, day_date, phase_name, illum)
+                    trad_items[trad_item["id"]] = trad_item
+
+                tk_attr = f" data-tk='{trad_item['k']}'" if trad_item else ""
                 html += (
                     f"<td class='day-cell' data-date='{day_date.isoformat()}' "
-                    f"data-phase='{phases[d].split()[0].lower()}' style='--dow:{dow}'>"
+                    f"data-phase='{phases[d].split()[0].lower()}'{tk_attr} style='--dow:{dow}'>"
                 )
 
                 if COSMETICS_MODE:
@@ -1604,8 +1685,18 @@ def write_html(year: int, output_path: str) -> None:
 
                 html += f"""{rise_set_html}"""
 
+                if trad_item:
+                    kind = traditions.TRADITIONS[TRADITION]["kinds"][trad_item["k"]]
+                    badge = f"<span class='tb'>{trad_item['b']}</span>" if trad_item.get("b") else ""
+                    tip = html_escape(f"{trad_item['l']}: {trad_item['m']}", quote=True)
+                    html += (
+                        f"<div class='trad' title=\"{tip}\">{traditions.glyph_svg(kind['glyph'])}"
+                        f"<span class='tl'>{trad_item.get('s', trad_item['l'])}</span>{badge}</div>"
+                    )
+
                 day_data[day_date.isoformat()] = {
-                    "n": phase_name_for_date(day_date, frac),
+                    "t": trad_item["id"] if trad_item else None,
+                    "n": phase_name,
                     "i": illum,
                     "a": moon_age_days(day_date),
                     "e": event_time_str,
@@ -1644,6 +1735,17 @@ def write_html(year: int, output_path: str) -> None:
             ),
             "days": day_data,
         }
+        if TRADITION:
+            spec = traditions.TRADITIONS[TRADITION]
+            page_data["tradition"] = {
+                "id": TRADITION,
+                "name": spec["name"],
+                "kinds": {
+                    k: {"label": v["label"], "svg": traditions.glyph_svg(v["glyph"])}
+                    for k, v in spec["kinds"].items()
+                },
+                "items": trad_items,
+            }
         html += (
             f'<script id="nocticycle-data" type="application/json">{js_json(page_data)}</script>'
             f"<script>\n{load_js('calendar')}\n</script>"
@@ -1879,6 +1981,11 @@ if __name__ == "__main__":
             sys.exit(1)
     else:
         output_path = os.path.join(BASE_DIR, f"lunar_calendar_{CITY}_{YEAR}.html")
+
+    if TRADITION and not COSMETICS_MODE:
+        print("Note: --tradition is only available in the interactive layout; "
+              "ignoring it for --print-format.")
+        TRADITION = None
 
     # Resolve the location first: it provides the timezone when --tz is
     # omitted and the hemisphere used to orient the moon icons.

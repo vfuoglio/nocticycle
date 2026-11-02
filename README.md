@@ -117,6 +117,24 @@ system's light/dark preference.
 Moon icons are mirrored for locations in the southern hemisphere, and `--show-quarters`
 marks first- and last-quarter days.
 
+### ✔ Cultural lunar calendars (`--tradition`)
+
+Annotate every day with the meaning it carries in a living lunar tradition. Each one comes
+with its own banner, colour-coded day markers, a legend and a detailed entry in the day card:
+
+- `--tradition maori`: the **Māori Maramataka**, one named night per day (Whiro, Tirea … Rākaunui … Mutuwhenua)
+  with its energy and suggested activity (rest, fishing, planting, gathering).
+- `--tradition hindu`: the **Hindu Panchang tithi** of each day at local sunrise, split into
+  Shukla (waxing) and Krishna (waning) Paksha, with Ekadashi, Purnima, Amavasya and other
+  well-known observances flagged.
+- `--tradition wiccan`: the **Wiccan esbat** phases: initiation (waxing crescent), building,
+  full-moon esbat, banishing (waning) and dark moon rest.
+
+These traditions are living and differ between communities. The names and short meanings are
+general summaries, kept in `traditions.py` so you can edit them to match your own tradition
+(for the Maramataka in particular, night names vary between iwi and regions). `--tradition` is
+available in the interactive layout only, not with `--print-format`.
+
 ### ✔ Fully offline
 
 Once generated, the HTML file requires no internet connection.
@@ -274,6 +292,7 @@ ILLUMINATION_TREND = False
 --show-rise-set-times
 --show-quarters
 --ics [PATH]
+--tradition maori|hindu|wiccan
 --print-format
 --paper letter|a4|legal|tabloid   (print format, default: letter)
 --print-style grey|hatched|solid (print format, default: grey)
@@ -330,6 +349,14 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --illumination-tre
 
 ```
 python3 nocticycle.py --city "Halifax" --year 2026 --ics
+```
+
+### Cultural calendars
+
+```
+python3 nocticycle.py --city "Auckland" --tradition maori
+python3 nocticycle.py --city "Varanasi" --tradition hindu --show-rise-set-times
+python3 nocticycle.py --city "Halifax" --tradition wiccan
 ```
 
 ### Mark quarter moons

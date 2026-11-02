@@ -125,6 +125,19 @@
       ' <span class="dc-rel">' + relativeDays(iso, n.iso) + "</span>");
   }
 
+  function traditionBlock(info) {
+    var tr = data.tradition;
+    if (!tr || !info.t || !tr.items[info.t]) { return ""; }
+    var it = tr.items[info.t];
+    var kind = tr.kinds[it.k] || { svg: "" };
+    return '<div class="dc-trad" data-tk="' + esc(it.k) + '">' +
+      '<div class="dc-trad-name">' + esc(tr.name) + "</div>" +
+      '<div class="dc-trad-label">' + kind.svg + "<span>" + esc(it.l) + "</span>" +
+        (it.b ? '<span class="tb">' + esc(it.b) + "</span>" : "") + "</div>" +
+      (it.p ? '<div class="dc-trad-sub">' + esc(it.p) + "</div>" : "") +
+      "<p>" + esc(it.m) + "</p></div>";
+  }
+
   function buildCard() {
     backdrop = document.createElement("div");
     backdrop.className = "dc-backdrop";
@@ -179,7 +192,7 @@
       "</div>" +
       '<div class="dc-moon">' + (svg ? svg.outerHTML : "") + "</div>" +
       '<div class="dc-phase">' + esc(info.n || "") + "</div>" +
-      '<div class="dc-rows">' + rows + "</div>";
+      '<div class="dc-rows">' + rows + "</div>" + traditionBlock(info);
 
     var big = card.querySelector(".moon-svg");
     if (big) { big.classList.add("dc-moon-svg"); }
