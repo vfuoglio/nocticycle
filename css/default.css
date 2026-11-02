@@ -295,3 +295,64 @@ td {
     text-transform: uppercase;
     letter-spacing: 0.14em;
 }
+
+/* ===== Today highlight & next-events banner ===== */
+.day-cell.today {
+    outline: 2px solid #ebcb8b;
+    outline-offset: -1px;
+    box-shadow: 0 0 14px rgba(235, 203, 139, 0.45);
+}
+
+.day-cell.today .day-number::after {
+    content: "today";
+    margin-left: 4px;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ebcb8b;
+}
+
+.next-events {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 0 20px 0;
+}
+
+.ne-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 190px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: rgba(15, 18, 26, 0.96);
+    border: 1px solid rgba(136, 192, 208, 0.25);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.ne-label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #88c0d0;
+}
+
+.ne-when {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 2px 0;
+}
+
+.ne-rel {
+    font-size: 10px;
+    color: #D6C29A;
+}
+
+.ne-full .ne-when { color: #ebcb8b; }
+
+@media print {
+    .next-events { display: none; }
+}

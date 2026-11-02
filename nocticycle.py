@@ -22,7 +22,9 @@ from typing import List, Dict, Optional
 
 import math
 import argparse
+import json
 import os
+import sys
 
 from skyfield.api import load, wgs84
 from skyfield import almanac
@@ -108,6 +110,7 @@ ts = load.timescale()
 eph = load("de421.bsp")
 
 EVENTS_GLOBAL = None
+QUARTER_EVENTS_GLOBAL: list = []
 TZINFO = None
 
 LAT: float | None = None
@@ -632,7 +635,7 @@ class PhaseEvent:
     Attributes
     ----------
     kind : str
-        Either "new" or "full".
+        One of "new", "full", "first_quarter" or "last_quarter".
     date : date
         The calendar date on which the event occurs (local time).
     dt : datetime
@@ -667,18 +670,25 @@ def compute_phase_events_for_year(year: int):
 
     times, phases = almanac.find_discrete(t0, t1, almanac.moon_phases(eph))
 
-    events: List[PhaseEvent] = []
-    for t, phase in zip(times, phases):
-        if phase not in (0, 2):  # 0=new, 2=full
-            continue
+    global QUARTER_EVENTS_GLOBAL
 
+    events: List[PhaseEvent] = []
+    quarters: List[PhaseEvent] = []
+    for t, phase in zip(times, phases):
         utc_dt = t.utc_datetime().replace(tzinfo=ZoneInfo("UTC"))
         local_dt = utc_dt.astimezone(TZINFO)
-        kind = "new" if phase == 0 else "full"
 
+        if phase in (1, 3):  # 1=first quarter, 3=last quarter
+            kind = "first_quarter" if phase == 1 else "last_quarter"
+            quarters.append(PhaseEvent(kind, local_dt.date(), local_dt))
+            continue
+
+        kind = "new" if phase == 0 else "full"
         events.append(PhaseEvent(kind, local_dt.date(), local_dt))
 
     events.sort(key=lambda e: e.date)
+    quarters.sort(key=lambda e: e.dt)
+    QUARTER_EVENTS_GLOBAL = quarters
 
     # Build month buckets ONLY for the target year
     by_month: Dict[int, List[PhaseEvent]] = {m: [] for m in range(1, 13)}
@@ -1174,6 +1184,54 @@ def render_illumination_sparkline(values: list[float], width: int = 80, height: 
     )
 
 
+
+# ----------------------------------------
+# DAY DETAILS (embedded in the page for the interactive layer)
+# ----------------------------------------
+
+SYNODIC_MONTH = 29.530588
+
+def phase_name_for_date(d: date, frac: float) -> str:
+    """Return the descriptive phase name (e.g. "Waxing Crescent") for a day.
+
+    Exact event days (new, first quarter, full, last quarter) win over the
+    fraction-based name, so the label always agrees with the event markers.
+    """
+    for ev in EVENTS_GLOBAL or []:
+        if ev.date == d:
+            return "New Moon" if ev.kind == "new" else "Full Moon"
+    for ev in QUARTER_EVENTS_GLOBAL:
+        if ev.date == d:
+            return "First Quarter" if ev.kind == "first_quarter" else "Last Quarter"
+
+    if frac < 0.25:
+        return "Waxing Crescent"
+    if frac < 0.5:
+        return "Waxing Gibbous"
+    if frac < 0.75:
+        return "Waning Gibbous"
+    return "Waning Crescent"
+
+
+def moon_age_days(d: date) -> float | None:
+    """Days elapsed since the last new moon, measured at local noon of `d`."""
+    noon = datetime(d.year, d.month, d.day, 12, 0, tzinfo=TZINFO)
+    previous = [ev for ev in EVENTS_GLOBAL or [] if ev.kind == "new" and ev.dt <= noon]
+    if not previous:
+        return None
+    return round((noon - previous[-1].dt).total_seconds() / 86400, 1)
+
+
+def js_json(obj) -> str:
+    """Serialise `obj` as JSON that is safe to embed inside a <script> tag."""
+    return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
+
+
+def load_js(name: str) -> str:
+    """Read an inline script from the project's `js/` directory."""
+    with open(os.path.join(BASE_DIR, "js", f"{name}.js"), "r", encoding="utf-8") as f:
+        return f.read()
+
 # ----------------------------------------
 # HTML GENERATION
 # ----------------------------------------
@@ -1246,6 +1304,11 @@ def write_html(year: int, output_path: str) -> None:
 <body>
 
 <h1>Lunar Calendar {year} – {CITY}</h1>"""
+
+    day_data: Dict[str, dict] = {}
+
+    if COSMETICS_MODE:
+        html += '<div id="next-events" class="next-events" hidden></div>'
 
     # Only open the giant table when NOT in cosmetic mode
     if not COSMETICS_MODE:
@@ -1320,7 +1383,7 @@ def write_html(year: int, output_path: str) -> None:
                 if not SHOW_EVENT_TIME:
                     time_class += " hidden"
 
-                html += "<td class='day-cell'>"
+                html += f"<td class='day-cell' data-date='{day_date.isoformat()}'>"
 
                 if COSMETICS_MODE:
                     html += f"<div class='day-number'>{d}</div>"
@@ -1331,6 +1394,7 @@ def write_html(year: int, output_path: str) -> None:
                 if SHOW_LUMINANCE:
                     html += f"<div class='brightness'>{illum}%</div>"
 
+                rise = set_ = None
                 if SHOW_RISE_SET_TIMES:
                     rise, set_ = moon_rise_set_times(day_date)
                     rise_set_html = (
@@ -1350,6 +1414,15 @@ def write_html(year: int, output_path: str) -> None:
 
                 html += f"""{rise_set_html}"""
 
+                day_data[day_date.isoformat()] = {
+                    "n": phase_name_for_date(day_date, frac),
+                    "i": illum,
+                    "a": moon_age_days(day_date),
+                    "e": event_time_str,
+                    "r": rise or "",
+                    "s": set_ or "",
+                }
+
                 html += "</div>"  # end moon-wrapper
 
                 html += "</td>"
@@ -1365,6 +1438,26 @@ def write_html(year: int, output_path: str) -> None:
 
     if not COSMETICS_MODE:
         html += "</table>"
+
+    if COSMETICS_MODE:
+        page_data = {
+            "year": year,
+            "city": CITY,
+            "tz": TZ,
+            "riseSet": bool(SHOW_RISE_SET_TIMES),
+            "events": sorted(
+                (
+                    {"kind": ev.kind, "iso": ev.dt.isoformat()}
+                    for ev in list(events) + list(QUARTER_EVENTS_GLOBAL)
+                ),
+                key=lambda e: e["iso"],
+            ),
+            "days": day_data,
+        }
+        html += (
+            f'<script id="nocticycle-data" type="application/json">{js_json(page_data)}</script>'
+            f"<script>\n{load_js('calendar')}\n</script>"
+        )
 
     html += "</body></html>"
 
