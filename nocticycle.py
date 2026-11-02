@@ -1293,9 +1293,10 @@ def write_html(year: int, output_path: str) -> None:
         css = load_css("print")
 
     html = f"""
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lunar Calendar {year} – {CITY}</title>
 <style>
 {css}
@@ -1326,6 +1327,9 @@ def write_html(year: int, output_path: str) -> None:
             <div class="month-block">
                 <div class="month-name">{month_name(m)}</div>
                 <div class="month-subtitle">Lunar Phases</div>
+                <div class="weekdays" aria-hidden="true">
+                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                </div>
                 <table>
             """
         else:
@@ -1383,7 +1387,13 @@ def write_html(year: int, output_path: str) -> None:
                 if not SHOW_EVENT_TIME:
                     time_class += " hidden"
 
-                html += f"<td class='day-cell' data-date='{day_date.isoformat()}'>"
+                # Sunday-first weekday index; only used by the narrow-screen grid
+                # layout to offset the first day of the month.
+                dow = (day_date.weekday() + 1) % 7
+                html += (
+                    f"<td class='day-cell' data-date='{day_date.isoformat()}' "
+                    f"data-phase='{phases[d].split()[0].lower()}' style='--dow:{dow}'>"
+                )
 
                 if COSMETICS_MODE:
                     html += f"<div class='day-number'>{d}</div>"

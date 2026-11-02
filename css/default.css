@@ -462,3 +462,125 @@ td {
 @media print {
     .dc-backdrop { display: none !important; }
 }
+
+.rise-set {
+    margin-top: 3px;
+    font-size: 9px;
+    line-height: 1.3;
+    color: #d8dee9;
+    opacity: 0.85;
+    white-space: nowrap;
+}
+
+.weekdays { display: none; }
+
+/* ===== Narrow screens: one month = a 7-column week grid ===== */
+@media (max-width: 800px) {
+    body { margin: 8px; font-size: 12px; }
+
+    h1 { font-size: 18px; letter-spacing: 0.04em; }
+
+    .month-block { padding: 10px 8px 12px 8px; border-radius: 10px; }
+    .month-name { font-size: 18px; }
+
+    .month-block table,
+    .month-block tbody,
+    .month-block tr { display: block; }
+
+    /* The phase band row cannot span a week grid; each day carries its own accent. */
+    .month-block tr:first-child { display: none; }
+
+    .month-block tr:nth-child(2) {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 3px;
+    }
+
+    .weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 3px;
+        margin-bottom: 3px;
+        text-align: center;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #88c0d0;
+    }
+
+    .day-cell {
+        min-width: 0;
+        padding: 4px 2px;
+        border-bottom-width: 3px;
+    }
+
+    .day-cell:first-child { grid-column-start: calc(var(--dow) + 1); }
+
+    .day-cell[data-phase="waxing"] { border-bottom-color: #88c0d0; }
+    .day-cell[data-phase="waning"] { border-bottom-color: #d08770; }
+    .day-cell[data-phase="full"]   { border-bottom-color: #ebcb8b; }
+    .day-cell[data-phase="new"]    { border-bottom-color: #4c566a; }
+
+    .day-number { text-align: center; font-size: 10px; }
+    .day-cell.today .day-number::after { display: none; }
+
+    .moon-svg { width: 26px; height: 26px; }
+    .brightness { font-size: 9px; }
+
+    /* Secondary details live in the day card on small screens. */
+    .phase-time, .rise-set, .illum-graph { display: none; }
+
+    .day-card { align-self: flex-end; width: 100vw; max-width: none; border-radius: 16px 16px 0 0; }
+    .dc-backdrop { align-items: flex-end; }
+
+    .ne-item { min-width: 150px; }
+}
+
+/* ===== Light theme (follows the system preference) ===== */
+@media (prefers-color-scheme: light) {
+    body {
+        color: #2e3440;
+        background: linear-gradient(180deg, #f6f2ea 0%, #e9edf3 100%);
+    }
+
+    h1, .month-name { color: #2e3440; }
+    .month-subtitle { color: #8a6d2f; }
+
+    .month-block, .legend, .ne-item {
+        background: #ffffff;
+        border-color: rgba(46, 52, 64, 0.15);
+        box-shadow: 0 8px 22px rgba(46, 52, 64, 0.12);
+    }
+
+    td {
+        background: linear-gradient(180deg, #f8f9fc 0%, #e8ecf3 100%);
+        border-color: #cfd6e2;
+        box-shadow: 0 2px 6px rgba(46, 52, 64, 0.12);
+    }
+
+    th, .weekdays { color: #3b6f80; }
+    .day-number, .brightness { color: #2e3440; }
+    .phase-time { color: #2f6f82; opacity: 1; }
+    .rise-set { color: #3b4252; }
+    .illum-graph { opacity: 1; }
+
+    .moon-svg { filter: drop-shadow(0 1px 3px rgba(46, 52, 64, 0.35)); }
+
+    .day-cell.today { outline-color: #b4862c; box-shadow: 0 0 12px rgba(180, 134, 44, 0.45); }
+    .day-cell.today .day-number::after { color: #8a6d2f; }
+    .day-cell[role="button"]:hover,
+    .day-cell[role="button"]:focus-visible { border-color: #3b6f80; }
+
+    .ne-label { color: #3b6f80; }
+    .ne-rel { color: #8a6d2f; }
+    .ne-full .ne-when { color: #8a6d2f; }
+
+    .dc-backdrop { background: rgba(46, 52, 64, 0.45); }
+    .day-card { background: #ffffff; border-color: rgba(46, 52, 64, 0.2); box-shadow: 0 24px 60px rgba(46, 52, 64, 0.35); }
+    .dc-btn { background: #eef1f6; color: #2e3440; border-color: #cfd6e2; }
+    .dc-phase { color: #8a6d2f; }
+    .dc-k { color: #3b6f80; }
+    .dc-rel { color: #8a6d2f; }
+    .dc-row { border-top-color: #dde2ec; }
+    .dc-moon .moon-svg.dc-moon-svg { filter: drop-shadow(0 2px 8px rgba(46, 52, 64, 0.35)); }
+}
