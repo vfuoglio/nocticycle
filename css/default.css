@@ -356,3 +356,109 @@ td {
 @media print {
     .next-events { display: none; }
 }
+
+/* ===== Day detail card ===== */
+.day-cell[role="button"] {
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.day-cell[role="button"]:hover,
+.day-cell[role="button"]:focus-visible {
+    transform: translateY(-2px);
+    border-color: #88c0d0;
+    outline: none;
+}
+
+.dc-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 6, 10, 0.65);
+}
+
+.dc-backdrop[hidden] { display: none; }
+
+.day-card {
+    width: min(360px, 92vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 16px 18px 18px 18px;
+    border-radius: 14px;
+    background: #12151d;
+    border: 1px solid rgba(136, 192, 208, 0.35);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+    font-size: 13px;
+    text-align: center;
+}
+
+.dc-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dc-date {
+    flex: 1;
+    font-family: "Merriweather", "Georgia", serif;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+}
+
+.dc-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(67, 76, 94, 0.9);
+    background: #1b2029;
+    color: #e5e9f0;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.dc-btn:hover:not(:disabled) { border-color: #88c0d0; }
+.dc-btn:disabled { opacity: 0.3; cursor: default; }
+
+.dc-moon { margin: 14px 0 6px 0; }
+
+.dc-moon .moon-svg.dc-moon-svg {
+    width: 120px;
+    height: 120px;
+    filter: drop-shadow(0 0 14px rgba(235, 203, 139, 0.5));
+}
+
+.dc-phase {
+    font-size: 17px;
+    font-weight: 600;
+    color: #ebcb8b;
+    margin-bottom: 12px;
+}
+
+.dc-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(67, 76, 94, 0.6);
+    text-align: left;
+}
+
+.dc-k {
+    color: #88c0d0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 10px;
+    padding-top: 2px;
+}
+
+.dc-v { text-align: right; }
+.dc-rel { display: block; font-size: 10px; color: #D6C29A; }
+
+@media print {
+    .dc-backdrop { display: none !important; }
+}
