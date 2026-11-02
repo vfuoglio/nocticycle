@@ -88,6 +88,35 @@ Enabled via:
 - **Cosmetic mode** (default): modern, elegant, visually rich
 - **Print mode** (`--print-format`): minimal, grayscale‑friendly
 
+### ✔ Interactive day details
+
+Click (or press Enter on) any day to open a card with a large moon, the phase name,
+illumination, moon age, rise/set times (with `--show-rise-set-times`) and the next
+new/full moon. Use the arrow keys to move between days and Esc to close.
+
+### ✔ Today highlight and next-events banner
+
+The current day is highlighted and scrolled into view, and a banner at the top shows
+the next new and full moon with a countdown.
+
+### ✔ Responsive layout and light/dark theme
+
+On narrow screens each month becomes a week grid. The default theme follows your
+system's light/dark preference.
+
+### ✔ Automatic timezone detection
+
+`--tz` is optional: the timezone is detected from the city's coordinates.
+
+### ✔ Calendar export (.ics)
+
+`--ics` exports new, quarter and full moon events for import into Google/Apple/Outlook calendars.
+
+### ✔ Hemisphere-aware icons and quarter markers
+
+Moon icons are mirrored for locations in the southern hemisphere, and `--show-quarters`
+marks first- and last-quarter days.
+
 ### ✔ Fully offline
 
 Once generated, the HTML file requires no internet connection.
@@ -96,16 +125,17 @@ Once generated, the HTML file requires no internet connection.
 
 # 📦 Installation
 
-NoctiCycle requires only two external Python packages:
+NoctiCycle requires a few external Python packages:
 
 - **Skyfield** — astronomical calculations
 - **tzdata** — timezone definitions for systems without IANA zoneinfo
-- **geopy** — obtain latitues and longtudes via OpenStreetMap (Nominatim)
+- **geopy** — obtain latitudes and longitudes via OpenStreetMap (Nominatim)
+- **timezonefinder** — detect the timezone from the coordinates (only needed when `--tz` is omitted)
 
 Install them with:
 
 ```bash
-pip install skyfield tzdata geopy
+pip install skyfield tzdata geopy timezonefinder
 ```
 
 ---
@@ -160,7 +190,7 @@ source .venv/bin/activate
 ### 3. Install dependencies inside the venv
 
 ```bash
-pip install skyfield tzdata geopy
+pip install skyfield tzdata geopy timezonefinder
 ```
 
 ### 4. Run the script
@@ -181,7 +211,7 @@ deactivate
 
 ## 1. You choose a year **and** location
 
-Both `--city` and `--tz` are **required**:
+Only `--city` is required (`--tz` is detected automatically and `--year` defaults to the current year):
 
 ```
 python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
@@ -230,16 +260,20 @@ ILLUMINATION_TREND = False
 
 ```
 --city "Your City"
---tz "Your/Timezone"
 ```
 
 ### Optional parameters
 
 ```
+--tz "Your/Timezone"       (default: detected from the city)
+--year 2027                (default: current year)
 -o, --output
 --illumination-trend
 --show-event-time
 --show-luminance
+--show-rise-set-times
+--show-quarters
+--ics [PATH]
 --print-format
 ```
 
@@ -269,6 +303,18 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --print-format
 
 ```
 python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --illumination-trend
+```
+
+### Export the events to a calendar app
+
+```
+python3 nocticycle.py --city "Halifax" --year 2026 --ics
+```
+
+### Mark quarter moons
+
+```
+python3 nocticycle.py --city "Halifax" --year 2026 --show-quarters
 ```
 
 ### Combine flags
@@ -351,13 +397,13 @@ Share it. Print it. Use it in journals or planners.
 
 # ❓ FAQ
 
-## Why does NoctiCycle require both --city and --tz?
+## Why can I still pass --tz if it is detected automatically?
 
 Because a city name alone is not enough to determine the correct local time.
 Geocoding gives us latitude and longitude for astronomical calculations, but it does not provide timezone information. Timezones follow political boundaries, not geography, and cities with the same name can exist in different timezones.
 
 NoctiCycle needs the exact IANA timezone (including DST rules) to convert UTC lunar events into accurate local times.
-Providing both --city and --tz ensures that rise/set times, phase events, and illumination values are computed correctly for your location.
+NoctiCycle looks the timezone up from the geocoded coordinates, so `--tz` is optional. Passing it explicitly overrides the detection (useful offline or for unusual cases) and ensures that rise/set times, phase events, and illumination values are computed correctly for your location.
 
 ## Why do some days show “--” for moonrise or moonset?
 
