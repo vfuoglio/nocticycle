@@ -275,6 +275,9 @@ ILLUMINATION_TREND = False
 --show-quarters
 --ics [PATH]
 --print-format
+--paper letter|a4|legal|tabloid   (print format, default: letter)
+--print-style grey|hatched|solid (print format, default: grey)
+--print-layout rows|columns      (print format, default: rows)
 ```
 
 ---
@@ -298,6 +301,24 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2027
 ```
 python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --print-format
 ```
+
+### Print on one landscape page
+
+```
+python3 nocticycle.py --city "Halifax" --year 2026 --print-format --paper a4
+```
+
+The whole year is fitted on a single landscape sheet (`letter`, `a4`, `legal` or `tabloid`).
+Print format shows the weekday, day number, moon and illumination for every day, weekends
+shaded, new/full moon days highlighted (quarters with `--show-quarters`), and a footer listing
+the exact event times. Rise/set times and trend graphs are not part of the print format.
+
+- `--print-style grey|hatched|solid` chooses how the dark side of the moon is drawn
+  (`hatched` is best on black-and-white printers).
+- `--print-layout columns` puts months across and days down the page, planner style.
+  Moon icons are smaller there than in the default `rows` layout.
+- In your browser's print dialog, set margins to "Default" or "None", scale to 100% and turn
+  on "Background graphics" for the best result.
 
 ### Enable illumination trend sparkline
 
