@@ -49,7 +49,7 @@ td {
     vertical-align: middle;
 }
 
-td.day { line-height: 1.05; }
+td.day { line-height: 1.05; position: relative; }
 td.blank { background: transparent; }
 
 .dn { font-weight: bold; }
@@ -62,11 +62,67 @@ td.blank { background: transparent; }
     height: var(--moon, 0.28in);
 }
 
+/* ----- Moon icons: lit side white, dark side by --print-style ----- */
 .light  { fill: #fff; }
-.shadow { fill: #111; }
+.ps-grey    .shadow { fill: #9c9c9c; }
+.ps-hatched .shadow { fill: url(#nc-hatch); }
+.ps-solid   .shadow { fill: #111; }
 
 .moon-outline {
     fill: none;
-    stroke: #444;
-    stroke-width: 0.8;
+    stroke: #000;
+    stroke-width: 1.1;
 }
+
+/* ----- Day markers ----- */
+/* Waxing: solid line above the moon; waning: dashed line. */
+td.wax::before,
+td.wan::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 14%;
+    right: 14%;
+    border-top: 1.4pt solid #000;
+}
+td.wan::before { border-top-style: dashed; }
+
+/* New / full moon day: inverted day number. Quarter day: boxed number. */
+td.key-major .dn {
+    background: #000;
+    color: #fff;
+    border-radius: 2pt;
+    margin: 0 12%;
+}
+td.key-quarter .dn {
+    border: 0.7pt solid #000;
+    border-radius: 2pt;
+    margin: 0 12%;
+}
+
+/* ----- Legend ----- */
+.legend {
+    display: flex;
+    gap: 0.25in;
+    align-items: center;
+    height: var(--footer-h, 0.24in);
+    font-size: 6.5pt;
+}
+.lg { display: inline-flex; align-items: center; gap: 4pt; }
+.lg-bar {
+    display: inline-block;
+    width: 0.3in;
+    border-top: 1.4pt solid #000;
+}
+.lg-bar.wan { border-top-style: dashed; }
+.lg-pill {
+    display: inline-block;
+    min-width: 9pt;
+    padding: 0 2pt;
+    text-align: center;
+    font-style: normal;
+    font-weight: bold;
+    border-radius: 2pt;
+}
+.lg-pill.major { background: #000; color: #fff; }
+.lg-pill.quarter { border: 0.7pt solid #000; }

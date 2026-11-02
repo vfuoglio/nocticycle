@@ -109,6 +109,7 @@ COSMETICS_MODE: bool = True
 
 # Print-format settings (only used with --print-format)
 PAPER: str = "letter"
+PRINT_STYLE: str = "grey"
 # Landscape paper sizes in inches (width, height).
 PAPER_SIZES = {
     "letter": (11.0, 8.5),
@@ -242,6 +243,9 @@ def parse_cli_args():
     --paper : str
         Paper size used by --print-format (letter, a4, legal, tabloid).
 
+    --print-style : str
+        Dark-side rendering for --print-format (grey, hatched, solid).
+
     --output / -o : str
         Optional full path to the output HTML file.
 
@@ -315,6 +319,14 @@ def parse_cli_args():
         help="Use a simplified layout suitable for printing."
     )
     parser.add_argument(
+        "--print-style",
+        choices=("grey", "hatched", "solid"),
+        default="grey",
+        help="How the dark side of the moon is drawn with --print-format: "
+             "light grey (default), diagonal hatching (best on black-and-white "
+             "printers) or solid black."
+    )
+    parser.add_argument(
         "--paper",
         choices=sorted(PAPER_SIZES),
         default="letter",
@@ -366,7 +378,7 @@ def apply_cli_to_globals(args):
     global CITY, TZ, YEAR, BASE_DIR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
     global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, SHOW_RISE_SET_TIMES, COSMETICS_MODE
-    global SHOW_QUARTERS, PAPER
+    global SHOW_QUARTERS, PAPER, PRINT_STYLE
 
     # Required
     CITY = args.city
@@ -392,6 +404,7 @@ def apply_cli_to_globals(args):
     SHOW_RISE_SET_TIMES = args.show_rise_set_times
     SHOW_QUARTERS = args.show_quarters
     PAPER = args.paper
+    PRINT_STYLE = args.print_style
 
     # Default is already True at the top of the script.
     # If print-format is requested, disable cosmetics.
@@ -1639,6 +1652,28 @@ def write_html(year: int, output_path: str) -> None:
 PRINT_MARGIN_IN = 0.35
 PRINT_TITLE_IN = 0.3
 PRINT_LABEL_IN = 0.6
+PRINT_FOOTER_IN = 0.24
+
+
+# Diagonal hatching used for the dark side of the moon in --print-style hatched.
+# The icons use a 24-unit viewBox, so the pattern is expressed in those units.
+PRINT_HATCH_DEFS = (
+    '<svg width="0" height="0" style="position:absolute"><defs>'
+    '<pattern id="nc-hatch" width="2.4" height="2.4" patternUnits="userSpaceOnUse" '
+    'patternTransform="rotate(45)">'
+    '<rect width="2.4" height="2.4" fill="#fff"/>'
+    '<line x1="0" y1="0" x2="0" y2="2.4" stroke="#000" stroke-width="1.1"/>'
+    '</pattern></defs></svg>'
+)
+
+PRINT_LEGEND_HTML = (
+    '<div class="legend">'
+    '<span class="lg"><i class="lg-bar wax"></i>Waxing</span>'
+    '<span class="lg"><i class="lg-bar wan"></i>Waning</span>'
+    '<span class="lg"><i class="lg-pill major">1</i>New / full moon</span>'
+    '<span class="lg"><i class="lg-pill quarter">1</i>Quarter (with --show-quarters)</span>'
+    '</div>\n'
+)
 
 
 def print_geometry() -> dict:
@@ -1653,7 +1688,7 @@ def print_geometry() -> dict:
     usable_h = height - 2 * PRINT_MARGIN_IN
 
     col = (usable_w - PRINT_LABEL_IN) / 31
-    row = (usable_h - PRINT_TITLE_IN) / 12
+    row = (usable_h - PRINT_TITLE_IN - PRINT_FOOTER_IN) / 12
     moon = min(col * 0.9, row * 0.52)
     font_pt = min(9.0, col * 72 * 0.27)
 
@@ -1661,6 +1696,7 @@ def print_geometry() -> dict:
         "width": width, "height": height, "margin": PRINT_MARGIN_IN,
         "label": PRINT_LABEL_IN, "col": col, "row": row,
         "moon": moon, "font_pt": font_pt, "title": PRINT_TITLE_IN,
+        "footer": PRINT_FOOTER_IN,
     }
 
 
@@ -1675,6 +1711,7 @@ def print_page_css(g: dict) -> str:
         f"  --moon: {g['moon']:.4f}in;\n"
         f"  --fs: {g['font_pt']:.2f}pt;\n"
         f"  --title-h: {g['title']}in;\n"
+        f"  --footer-h: {g['footer']}in;\n"
         "}\n"
     )
 
@@ -1694,14 +1731,19 @@ def write_print_html(year: int, output_path: str, events, events_by_month) -> No
 {css}
 </style>
 </head>
-<body>
+<body class="ps-{PRINT_STYLE}">
+{PRINT_HATCH_DEFS if PRINT_STYLE == "hatched" else ""}
 <h1>Lunar Calendar {year} – {CITY}</h1>
 <table class="year">
 <colgroup><col class="c-label"><col span="31" class="c-day"></colgroup>
 """
 
+    quarter_days = {q.date for q in QUARTER_EVENTS_GLOBAL} if SHOW_QUARTERS else set()
+    major_days = {e.date for e in events}
+
     for m in range(1, 13):
         days = monthrange(year, m)[1]
+        phases = assign_daily_phases(year, m, events, events_by_month)
         html += f"<tr><th class='month'>{month_name(m)}</th>"
         for d in range(1, 32):
             if d > days:
@@ -1712,7 +1754,17 @@ def write_print_html(year: int, output_path: str, events, events_by_month) -> No
             frac = moon_phase_fraction(day_date)
             _, illum = moon_illumination_percent(day_date)
 
-            html += "<td class='day'>"
+            classes = ["day"]
+            if day_date in major_days:
+                classes.append("key-major")
+            elif day_date in quarter_days:
+                classes.append("key-quarter")
+            elif phases[d] == "Waxing":
+                classes.append("wax")
+            elif phases[d] == "Waning":
+                classes.append("wan")
+
+            html += f"<td class='{' '.join(classes)}'>"
             html += f"<div class='dn'>{d}</div>"
             html += render_moon_svg(frac, size=24, mirror=mirror)
             if SHOW_LUMINANCE:
@@ -1720,7 +1772,9 @@ def write_print_html(year: int, output_path: str, events, events_by_month) -> No
             html += "</td>"
         html += "</tr>\n"
 
-    html += "</table>\n</body></html>"
+    html += "</table>\n"
+    html += PRINT_LEGEND_HTML
+    html += "</body></html>"
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
