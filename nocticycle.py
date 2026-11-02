@@ -182,18 +182,23 @@ def parse_cli_args():
     Parse command-line arguments for NoctiCycle.
 
     This function defines the command-line interface for the lunar calendar
-    generator. It enforces three required parameters (CITY, TZ, YEAR) and
-    provides optional flags that override the default global configuration
+    generator. Only --city is required: --tz is detected from the city's
+    coordinates when omitted, and --year defaults to the current year.
+    Optional flags that override the default global configuration
     values defined in the script.
 
     Required arguments
     ------------------
     --city : str
         The display name of the city (e.g., "Halifax").
+
+    Optional location/time arguments
+    --------------------------------
     --tz : str
-        The IANA timezone identifier (e.g., "America/Halifax").
+        The IANA timezone identifier (e.g., "America/Halifax"). Detected
+        automatically from the geocoded coordinates when omitted.
     --year : int
-        The calendar year to generate.
+        The calendar year to generate (default: the current year).
 
     Optional flags
     --------------
@@ -236,14 +241,15 @@ def parse_cli_args():
     )
     parser.add_argument(
         "--tz",
-        required=True,
-        help="IANA timezone (e.g., 'America/Halifax')."
+        default=None,
+        help="IANA timezone (e.g., 'America/Halifax'). Optional: when omitted "
+             "it is detected from the city's coordinates."
     )
     parser.add_argument(
         "--year",
         type=int,
-        required=True,
-        help="Year to generate the lunar calendar for."
+        default=None,
+        help="Year to generate the lunar calendar for (default: current year)."
     )
 
     # Optional overrides
@@ -328,8 +334,8 @@ def apply_cli_to_globals(args):
 
     # Required
     CITY = args.city
-    TZ = args.tz
-    YEAR = args.year
+    TZ = args.tz            # may be None: resolved later from the coordinates
+    YEAR = args.year if args.year is not None else date.today().year
 
     # Optional overrides
     if args.show_luminance:
@@ -358,105 +364,131 @@ def apply_cli_to_globals(args):
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+class LocationError(RuntimeError):
+    """Raised when the city cannot be turned into coordinates or a timezone."""
+
+
+def geocode_candidates(name: str, limit: int = 5) -> list:
+    """Return up to `limit` Nominatim matches for a place name.
+
+    Network and service problems are converted into a LocationError with a
+    message the user can act on.
+    """
+    from geopy.exc import GeopyError
+
+    geolocator = Nominatim(user_agent="nocticycle", timeout=10)
+    try:
+        matches = geolocator.geocode(name, exactly_one=False, limit=limit)
+    except GeopyError as exc:
+        raise LocationError(
+            f"Could not reach the geocoding service while looking up '{name}' "
+            f"({exc.__class__.__name__}). Check your internet connection and try again."
+        ) from exc
+
+    if not matches:
+        raise LocationError(
+            f"No place found for '{name}'. Try adding the country or region, "
+            f"e.g. --city \"{name}, Canada\"."
+        )
+    return list(matches)
+
+
+def choose_candidate(name: str, matches: list):
+    """Pick one geocoding match, asking the user when the name is ambiguous.
+
+    Without an interactive terminal the best match is used and the other
+    candidates are listed so the user can refine the query.
+    """
+    if len(matches) == 1:
+        return matches[0]
+
+    print(f"\nSeveral places match '{name}':")
+    for i, m in enumerate(matches, 1):
+        print(f"  {i}) {m.address}")
+
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        while True:
+            answer = input(f"Choose 1-{len(matches)} [1]: ").strip() or "1"
+            if answer.isdigit() and 1 <= int(answer) <= len(matches):
+                print()
+                return matches[int(answer) - 1]
+            print("  Please enter one of the listed numbers.")
+
+    print("  Using the first match. Add a country/region to --city to pick another.\n")
+    return matches[0]
+
+
 def geocode_city(name: str) -> tuple[float, float]:
     """
-    Resolve a human‑readable city name into geographic coordinates.
+    Resolve a human-readable city name into geographic coordinates.
 
-    This function uses the OpenStreetMap Nominatim geocoding service
-    (via the `geopy` library) to convert a CITY string into latitude
-    and longitude values. The returned coordinates are used to build
-    the Skyfield observer object required for moonrise and moonset
-    calculations.
+    Uses OpenStreetMap Nominatim (via `geopy`). When several places match,
+    the user is asked to choose in an interactive terminal; otherwise the
+    best match is used.
 
     Parameters
     ----------
     name : str
-        The city name provided by the user (e.g., "Halifax",
-        "New York", "Tokyo"). The query is passed directly to the
-        geocoding backend.
+        The city name provided by the user (e.g., "Halifax", "New York").
 
     Returns
     -------
     tuple[float, float]
-        A pair `(lat, lon)` representing the geographic coordinates
-        of the requested city in decimal degrees.
-
-    Notes
-    -----
-    • This function requires an active internet connection unless
-      results are cached externally.
-
-    • Nominatim enforces usage policies and requires a unique
-      `user_agent` string identifying the application. The value
-      "nocticycle" is used here for clarity and compliance.
-
-    • If the city cannot be resolved, a RuntimeError is raised with
-      a descriptive message.
+        A pair `(lat, lon)` in decimal degrees.
 
     Raises
     ------
-    RuntimeError
-        If the geocoding service cannot find a matching location.
+    LocationError
+        If the service is unreachable or no place matches the name.
     """
-    geolocator = Nominatim(user_agent="nocticycle")
-    loc = geolocator.geocode(name)
-
-    if loc is None:
-        raise RuntimeError(f"Could not resolve coordinates for city '{name}'")
-
+    loc = choose_candidate(name, geocode_candidates(name))
     return loc.latitude, loc.longitude
+
+
+def detect_timezone(lat: float, lon: float) -> str:
+    """Return the IANA timezone identifier for a coordinate pair.
+
+    Requires the optional `timezonefinder` package.
+    """
+    try:
+        from timezonefinder import TimezoneFinder
+    except ImportError as exc:
+        raise LocationError(
+            "Automatic timezone detection needs the 'timezonefinder' package.\n"
+            "   Install it with:  pip install timezonefinder\n"
+            "   or pass the timezone yourself with --tz (e.g. --tz America/Halifax)."
+        ) from exc
+
+    tz_name = TimezoneFinder().timezone_at(lat=lat, lng=lon)
+    if not tz_name:
+        raise LocationError(
+            f"Could not determine the timezone at ({lat:.3f}, {lon:.3f}). "
+            "Please pass it with --tz."
+        )
+    return tz_name
+
+
+def resolve_location() -> None:
+    """Geocode CITY once and fill LAT, LON and OBSERVER."""
+    global LAT, LON, OBSERVER
+    LAT, LON = geocode_city(CITY)
+    OBSERVER = wgs84.latlon(LAT, LON)
+
 
 def initialize_observer():
     """
-    Resolve the user's CITY into geographic coordinates and construct
-    the Skyfield observer object used for rise/set calculations.
+    Make sure the Skyfield observer used for rise/set calculations exists.
 
-    This function performs three tasks:
-        1. Geocodes the configured CITY name into latitude and longitude.
-        2. Stores the resulting coordinates in the global LAT and LON
-           variables (initially declared as None).
-        3. Builds a Skyfield `wgs84.latlon()` observer for use in
-           moonrise/moonset computations.
-
-    Notes
-    -----
-    Skyfield requires precise geographic coordinates to compute horizon
-    crossings (moonrise and moonset). Because CITY is provided as a
-    human‑readable string, it must be converted into numeric coordinates
-    via a geocoding function such as `geocode_city()`. This function does
-    not perform geocoding itself; it delegates to whatever geocoding
-    backend the application provides.
-
-    This separation allows LAT, LON, and OBSERVER to be declared at module
-    load time without requiring immediate initialization. They are only
-    populated once CITY and TZ have been validated and finalized.
-
-    Parameters
-    ----------
-    None
-
-    Effects
-    -------
-    LAT : float
-        Latitude of the selected city in decimal degrees.
-    LON : float
-        Longitude of the selected city in decimal degrees.
-    OBSERVER : skyfield.api.Topos
-        A Skyfield observer object representing the user's location.
+    The CITY is geocoded on demand (see `resolve_location`); when the
+    location was already resolved earlier in the run nothing is repeated.
 
     Raises
     ------
-    RuntimeError
-        If the CITY cannot be resolved into coordinates by the geocoding
-        backend.
+    LocationError
+        If the CITY cannot be resolved into coordinates.
     """
-    global LAT, LON, OBSERVER
-
-    # Resolve CITY → (latitude, longitude)
-    LAT, LON = geocode_city(CITY)
-
-    # Construct the Skyfield observer
-    OBSERVER = wgs84.latlon(LAT, LON)
+    if OBSERVER is None:
+        resolve_location()
 
 def load_css(style: str) -> str:
     """
@@ -1497,11 +1529,23 @@ if __name__ == "__main__":
     else:
         output_path = os.path.join(BASE_DIR, f"lunar_calendar_{CITY}_{YEAR}.html")
 
-    validate_config()
+    # Resolve the location first: it provides the timezone when --tz is
+    # omitted and the hemisphere used to orient the moon icons.
+    tz_given = TZ is not None
+    try:
+        resolve_location()
+        if not tz_given:
+            TZ = detect_timezone(LAT, LON)
+            print(f"Detected timezone: {TZ}")
+    except LocationError as e:
+        if tz_given and not SHOW_RISE_SET_TIMES:
+            print(f"\n⚠  {e}")
+            print("   Continuing without coordinates (moon icons use the northern-hemisphere orientation).\n")
+        else:
+            print(f"\nError: {e}")
+            sys.exit(1)
 
-    if SHOW_RISE_SET_TIMES:
-        # Initialize the observer for geopy
-        initialize_observer()
+    validate_config()
 
     TZINFO = ZoneInfo(TZ)
 
