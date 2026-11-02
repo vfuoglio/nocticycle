@@ -49,15 +49,19 @@ td {
     vertical-align: middle;
 }
 
-td.day { line-height: 1.05; position: relative; }
+td.day { line-height: 1; position: relative; overflow: hidden; }
 td.blank { background: transparent; }
 
 .dn { font-weight: bold; }
 .il { opacity: 0.85; }
+.wd { color: #444; font-size: 0.85em; }
+
+/* Weekends are lightly shaded so the calendar doubles as a planner. */
+td.we { background: #e8e8e8; }
 
 .moon-svg {
     display: block;
-    margin: 0.01in auto;
+    margin: 0.005in auto;
     width: var(--moon, 0.28in);
     height: var(--moon, 0.28in);
 }
@@ -105,7 +109,7 @@ td.key-quarter .dn {
     display: flex;
     gap: 0.25in;
     align-items: center;
-    height: var(--footer-h, 0.24in);
+    height: 0.2in;
     font-size: 6.5pt;
 }
 .lg { display: inline-flex; align-items: center; gap: 4pt; }
@@ -126,3 +130,49 @@ td.key-quarter .dn {
 }
 .lg-pill.major { background: #000; color: #fff; }
 .lg-pill.quarter { border: 0.7pt solid #000; }
+
+/* ----- Rows layout: weekday, number, moon and illumination stacked ----- */
+.layout-rows td.day > span { display: block; }
+
+/* ----- Columns layout: one month per column, one line per day ----- */
+.layout-columns col.c-month { width: var(--col-w, 0.85in); }
+.layout-columns tr { height: var(--row-h, 0.2in); }
+.layout-columns tr.head { height: var(--head-h, 0.2in); }
+.layout-columns th.month { text-align: center; }
+.layout-columns td.day { white-space: nowrap; text-align: left; padding-left: 3pt; }
+.layout-columns td.day > span,
+.layout-columns td.day > .moon-svg { display: inline-block; vertical-align: middle; }
+.layout-columns .wd { width: 1.1em; text-align: center; }
+.layout-columns .dn { min-width: 1.8em; text-align: center; }
+.layout-columns .il { margin-left: 3pt; }
+.layout-columns .moon-svg { margin: 0 2pt; }
+.layout-columns td.key-major .dn,
+.layout-columns td.key-quarter .dn { margin: 0; }
+
+/* In the columns layout the waxing/waning marker is a vertical bar at the left. */
+.layout-columns td.wax::before,
+.layout-columns td.wan::before {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    border-top: 0;
+    border-left: 1.4pt solid #000;
+}
+.layout-columns td.wan::before { border-left-style: dashed; }
+
+/* ----- Event list (exact times) ----- */
+.events {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.1in;
+    font-size: 5.8pt;
+    line-height: 0.115in;
+}
+.ev { display: inline-flex; align-items: center; gap: 2pt; white-space: nowrap; width: 0.68in; }
+.ev .moon-svg {
+    display: inline-block;
+    width: 7pt;
+    height: 7pt;
+    margin: 0;
+}
