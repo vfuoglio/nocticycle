@@ -107,6 +107,16 @@ USE_EXACT_EVENT_ILLUMINATION: bool = True
 
 COSMETICS_MODE: bool = True
 
+# Print-format settings (only used with --print-format)
+PAPER: str = "letter"
+# Landscape paper sizes in inches (width, height).
+PAPER_SIZES = {
+    "letter": (11.0, 8.5),
+    "a4": (11.69, 8.27),
+    "legal": (14.0, 8.5),
+    "tabloid": (17.0, 11.0),
+}
+
 ts = load.timescale()
 eph = load("de421.bsp")
 
@@ -229,6 +239,9 @@ def parse_cli_args():
         default behavior (without this flag) is to use the full cosmetic
         layout.
 
+    --paper : str
+        Paper size used by --print-format (letter, a4, legal, tabloid).
+
     --output / -o : str
         Optional full path to the output HTML file.
 
@@ -301,6 +314,13 @@ def parse_cli_args():
         action="store_true",
         help="Use a simplified layout suitable for printing."
     )
+    parser.add_argument(
+        "--paper",
+        choices=sorted(PAPER_SIZES),
+        default="letter",
+        help="Paper size for --print-format; the year is fitted on one "
+             "landscape page of this size (default: letter)."
+    )
 
     return parser.parse_args()
 
@@ -346,7 +366,7 @@ def apply_cli_to_globals(args):
     global CITY, TZ, YEAR, BASE_DIR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
     global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, SHOW_RISE_SET_TIMES, COSMETICS_MODE
-    global SHOW_QUARTERS
+    global SHOW_QUARTERS, PAPER
 
     # Required
     CITY = args.city
@@ -371,6 +391,7 @@ def apply_cli_to_globals(args):
 
     SHOW_RISE_SET_TIMES = args.show_rise_set_times
     SHOW_QUARTERS = args.show_quarters
+    PAPER = args.paper
 
     # Default is already True at the top of the script.
     # If print-format is requested, disable cosmetics.
@@ -1409,10 +1430,11 @@ def write_html(year: int, output_path: str) -> None:
     events, events_by_month = compute_phase_events_for_year(year)
     EVENTS_GLOBAL = events  # retained for illumination lookups
 
-    if COSMETICS_MODE:
-        css = load_css("default")
-    else:
-        css = load_css("print")
+    if not COSMETICS_MODE:
+        write_print_html(year, output_path, events, events_by_month)
+        return
+
+    css = load_css("default")
 
     html = f"""
 <html lang="en">
@@ -1607,6 +1629,103 @@ def write_html(year: int, output_path: str) -> None:
 
     print(f"Generated {output_path}")
 
+
+
+
+# ----------------------------------------
+# PRINT LAYOUT (one landscape page per year)
+# ----------------------------------------
+
+PRINT_MARGIN_IN = 0.35
+PRINT_TITLE_IN = 0.3
+PRINT_LABEL_IN = 0.6
+
+
+def print_geometry() -> dict:
+    """Compute physical sizes (inches/points) so the year fits one page.
+
+    Everything printed is sized from the paper dimensions, so the layout
+    scales to any supported paper instead of relying on the browser to
+    shrink an oversized table.
+    """
+    width, height = PAPER_SIZES[PAPER]
+    usable_w = width - 2 * PRINT_MARGIN_IN
+    usable_h = height - 2 * PRINT_MARGIN_IN
+
+    col = (usable_w - PRINT_LABEL_IN) / 31
+    row = (usable_h - PRINT_TITLE_IN) / 12
+    moon = min(col * 0.9, row * 0.52)
+    font_pt = min(9.0, col * 72 * 0.27)
+
+    return {
+        "width": width, "height": height, "margin": PRINT_MARGIN_IN,
+        "label": PRINT_LABEL_IN, "col": col, "row": row,
+        "moon": moon, "font_pt": font_pt, "title": PRINT_TITLE_IN,
+    }
+
+
+def print_page_css(g: dict) -> str:
+    """Page setup and size variables for the print layout."""
+    return (
+        f"@page {{ size: {g['width']}in {g['height']}in; margin: {g['margin']}in; }}\n"
+        ":root {\n"
+        f"  --label-w: {g['label']:.3f}in;\n"
+        f"  --col-w: {g['col']:.4f}in;\n"
+        f"  --row-h: {g['row']:.4f}in;\n"
+        f"  --moon: {g['moon']:.4f}in;\n"
+        f"  --fs: {g['font_pt']:.2f}pt;\n"
+        f"  --title-h: {g['title']}in;\n"
+        "}\n"
+    )
+
+
+def write_print_html(year: int, output_path: str, events, events_by_month) -> None:
+    """Write the print-format calendar: the whole year on one landscape page."""
+    g = print_geometry()
+    css = load_css("print") + "\n" + print_page_css(g)
+    mirror = is_southern_hemisphere()
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lunar Calendar {year} – {CITY}</title>
+<style>
+{css}
+</style>
+</head>
+<body>
+<h1>Lunar Calendar {year} – {CITY}</h1>
+<table class="year">
+<colgroup><col class="c-label"><col span="31" class="c-day"></colgroup>
+"""
+
+    for m in range(1, 13):
+        days = monthrange(year, m)[1]
+        html += f"<tr><th class='month'>{month_name(m)}</th>"
+        for d in range(1, 32):
+            if d > days:
+                html += "<td class='blank'></td>"
+                continue
+
+            day_date = date(year, m, d)
+            frac = moon_phase_fraction(day_date)
+            _, illum = moon_illumination_percent(day_date)
+
+            html += "<td class='day'>"
+            html += f"<div class='dn'>{d}</div>"
+            html += render_moon_svg(frac, size=24, mirror=mirror)
+            if SHOW_LUMINANCE:
+                html += f"<div class='il'>{round(illum)}</div>"
+            html += "</td>"
+        html += "</tr>\n"
+
+    html += "</table>\n</body></html>"
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    print(f"Generated {output_path}")
 
 
 # ----------------------------------------
