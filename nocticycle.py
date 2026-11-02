@@ -101,6 +101,7 @@ SHOW_LUMINANCE: bool = True
 SHOW_EVENT_TIME: bool = True
 ILLUMINATION_TREND: bool = False
 SHOW_RISE_SET_TIMES: bool = False
+SHOW_QUARTERS: bool = False
 
 USE_EXACT_EVENT_ILLUMINATION: bool = True
 
@@ -215,6 +216,13 @@ def parse_cli_args():
     --show-rise-set-time : bool
         Enable or disable showing moonrise and moon set times
 
+    --show-quarters : bool
+        Mark first-quarter and last-quarter days in the calendar.
+
+    --ics [PATH] : str
+        Also write the new, quarter and full moon events as an iCalendar
+        (.ics) file that can be imported or subscribed to in calendar apps.
+
     --print-format : bool
         Use a simplified, print‑friendly layout. When this flag is present,
         cosmetic styling and enhanced visual elements are disabled. The
@@ -274,6 +282,13 @@ def parse_cli_args():
     parser.add_argument("--show-rise-set-times", action="store_true",
                         help="Display moonrise and moonset times for each day.")
 
+    parser.add_argument("--show-quarters", action="store_true",
+                        help="Mark first-quarter and last-quarter days (with their times).")
+
+    parser.add_argument("--ics", nargs="?", const="auto", default=None, metavar="PATH",
+                        help="Also export new/quarter/full moon events as an .ics calendar "
+                             "file (default path: next to the HTML file).")
+
     parser.add_argument("-o", "--output",type=str,
                         help="Optional full path to the output HTML file."
     )
@@ -331,6 +346,7 @@ def apply_cli_to_globals(args):
     global CITY, TZ, YEAR, BASE_DIR
     global SHOW_LUMINANCE, SHOW_EVENT_TIME
     global USE_EXACT_EVENT_ILLUMINATION, ILLUMINATION_TREND, SHOW_RISE_SET_TIMES, COSMETICS_MODE
+    global SHOW_QUARTERS
 
     # Required
     CITY = args.city
@@ -354,6 +370,7 @@ def apply_cli_to_globals(args):
         USE_EXACT_EVENT_ILLUMINATION = False
 
     SHOW_RISE_SET_TIMES = args.show_rise_set_times
+    SHOW_QUARTERS = args.show_quarters
 
     # Default is already True at the top of the script.
     # If print-format is requested, disable cosmetics.
@@ -1103,7 +1120,7 @@ def compute_terminator_geometry(phase: float, radius: float) -> TerminatorGeomet
     )
 
 
-def render_moon_svg(phase: float, size: int = 24) -> str:
+def render_moon_svg(phase: float, size: int = 24, mirror: bool = False) -> str:
     """Render an SVG moon icon for a given lunar phase.
 
     Parameters
@@ -1112,6 +1129,10 @@ def render_moon_svg(phase: float, size: int = 24) -> str:
         Lunation fraction (0.0 = new, 0.5 = full).
     size : int, optional
         Width and height of the SVG viewport in pixels. Default is 24.
+    mirror : bool, optional
+        Flip the icon horizontally. Seen from the southern hemisphere the
+        Moon appears upside down, so the lit side of a waxing moon is on
+        the left. Default is False (northern-hemisphere view).
 
     Returns
     -------
@@ -1147,11 +1168,16 @@ def render_moon_svg(phase: float, size: int = 24) -> str:
     # Outline circle
     outline = f'<circle cx="{r}" cy="{r}" r="{r - 0.5}" class="moon-outline"/>'
 
-    return (
-        f'<svg class="moon-svg" viewBox="0 0 {size} {size}">'
-        f'{outline}{"".join(paths)}'
-        f'</svg>'
-    )
+    body = f'{outline}{"".join(paths)}'
+    if mirror:
+        body = f'<g transform="translate({size},0) scale(-1,1)">{body}</g>'
+
+    return f'<svg class="moon-svg" viewBox="0 0 {size} {size}">{body}</svg>'
+
+
+def is_southern_hemisphere() -> bool:
+    """True when the geocoded location lies south of the equator."""
+    return LAT is not None and LAT < 0
 
 def render_illumination_sparkline(values: list[float], width: int = 80, height: int = 18) -> str:
     """
@@ -1263,6 +1289,70 @@ def load_js(name: str) -> str:
     """Read an inline script from the project's `js/` directory."""
     with open(os.path.join(BASE_DIR, "js", f"{name}.js"), "r", encoding="utf-8") as f:
         return f.read()
+
+
+# ----------------------------------------
+# ICS EXPORT
+# ----------------------------------------
+
+ICS_EVENT_LABELS = {
+    "new": "\U0001F311 New Moon",
+    "first_quarter": "\U0001F313 First Quarter",
+    "full": "\U0001F315 Full Moon",
+    "last_quarter": "\U0001F317 Last Quarter",
+}
+
+
+def build_ics(year: int) -> str:
+    """Build an iCalendar document with the year's new/quarter/full moons.
+
+    Event times are written in UTC, so calendar apps show them in the
+    viewer's own timezone. The description mentions the local time at the
+    calendar's city.
+    """
+    utc = ZoneInfo("UTC")
+    stamp = datetime.now(utc).strftime("%Y%m%dT%H%M%SZ")
+
+    moments = [
+        ev for ev in list(EVENTS_GLOBAL or []) + list(QUARTER_EVENTS_GLOBAL)
+        if ev.dt.year == year
+    ]
+    moments.sort(key=lambda e: e.dt)
+
+    def esc(text: str) -> str:
+        return (text.replace("\\", "\\\\").replace(";", "\\;")
+                    .replace(",", "\\,").replace("\n", "\\n"))
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//NoctiCycle//Lunar Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        f"X-WR-CALNAME:{esc(f'NoctiCycle {year} - {CITY}')}",
+    ]
+    for ev in moments:
+        start = ev.dt.astimezone(utc)
+        end = start + timedelta(minutes=30)
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{ev.kind}-{start.strftime('%Y%m%dT%H%M%SZ')}@nocticycle",
+            f"DTSTAMP:{stamp}",
+            f"DTSTART:{start.strftime('%Y%m%dT%H%M%SZ')}",
+            f"DTEND:{end.strftime('%Y%m%dT%H%M%SZ')}",
+            f"SUMMARY:{esc(ICS_EVENT_LABELS[ev.kind])}",
+            f"DESCRIPTION:{esc(f'Local time in {CITY}: ' + ev.dt.strftime('%Y-%m-%d %H:%M %Z'))}",
+            "TRANSP:TRANSPARENT",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"
+
+
+def write_ics(year: int, output_path: str) -> None:
+    """Write the year's moon events to `output_path` as an .ics file."""
+    with open(output_path, "w", encoding="utf-8", newline="") as f:
+        f.write(build_ics(year))
+    print(f"Generated {output_path}")
 
 # ----------------------------------------
 # HTML GENERATION
@@ -1407,7 +1497,7 @@ def write_html(year: int, output_path: str) -> None:
                 day_date = date(year, m, d)
 
                 frac = moon_phase_fraction(day_date)
-                moon_svg = render_moon_svg(frac, size=24)
+                moon_svg = render_moon_svg(frac, size=24, mirror=is_southern_hemisphere())
                 event_time_str, illum = moon_illumination_percent(day_date)
 
                 trend_svg = ""
@@ -1453,6 +1543,15 @@ def write_html(year: int, output_path: str) -> None:
                     html += trend_svg
 
                 html += f"<div class='{time_class}'>{event_time_str}</div>"
+
+                if SHOW_QUARTERS:
+                    quarter = next((q for q in QUARTER_EVENTS_GLOBAL if q.date == day_date), None)
+                    if quarter:
+                        label = "1st Qtr" if quarter.kind == "first_quarter" else "Last Qtr"
+                        html += (
+                            f"<div class='quarter-mark'><span class='qm-label'>{label}</span>"
+                            f"<span class='qm-time'>{quarter.dt.strftime('%H:%M')}</span></div>"
+                        )
 
                 html += f"""{rise_set_html}"""
 
@@ -1558,6 +1657,20 @@ if __name__ == "__main__":
         YEAR,
         output_path
     )
+
+    if args.ics:
+        if args.ics == "auto":
+            ics_path = os.path.splitext(output_path)[0] + ".ics"
+        else:
+            ics_path = os.path.abspath(os.path.expanduser(args.ics))
+            if not ics_path.lower().endswith(".ics"):
+                print(f"Error: --ics path must end in .ics (got '{args.ics}')")
+                sys.exit(1)
+        try:
+            write_ics(YEAR, ics_path)
+        except OSError as e:
+            print(f"Error: could not write '{ics_path}': {e}")
+            sys.exit(1)
 
     print("Done.")
 

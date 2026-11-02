@@ -584,3 +584,27 @@ td {
     .dc-row { border-top-color: #dde2ec; }
     .dc-moon .moon-svg.dc-moon-svg { filter: drop-shadow(0 2px 8px rgba(46, 52, 64, 0.35)); }
 }
+
+/* ===== Quarter-moon markers ===== */
+.quarter-mark {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2px;
+    padding: 1px 4px;
+    border-radius: 6px;
+    border: 1px solid rgba(136, 192, 208, 0.5);
+    font-size: 9px;
+    line-height: 1.25;
+    color: #88c0d0;
+}
+
+.qm-label { font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+
+@media (max-width: 800px) {
+    .qm-time { display: none; }
+}
+
+@media (prefers-color-scheme: light) {
+    .quarter-mark { color: #3b6f80; border-color: rgba(59, 111, 128, 0.5); }
+}

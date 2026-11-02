@@ -93,3 +93,12 @@ th {
     margin-top: 2px;
     opacity: 0.85;
 }
+
+.quarter-mark {
+    font-size: 7px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    margin-top: 1px;
+}
+
+.qm-label, .qm-time { display: block; }
