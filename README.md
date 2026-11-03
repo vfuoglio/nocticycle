@@ -131,7 +131,7 @@ with its own banner, colour-coded day markers, a legend and a detailed entry in 
   full-moon esbat, banishing (waning) and dark moon rest.
 
 These traditions are living and differ between communities. The names and short meanings are
-general summaries, kept in `traditions.py` so you can edit them to match your own tradition
+general summaries, kept in `lunar/traditions.py` so you can edit them to match your own tradition
 (for the Maramataka in particular, night names vary between iwi and regions). `--tradition` is
 available in the interactive layout only, not with `--print-format`.
 
@@ -257,9 +257,30 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
 
 ---
 
+# 🧩 Project layout
+
+`nocticycle.py` is a thin launcher; the code lives in the `lunar/` package:
+
+| Module | Role |
+|---|---|
+| `config.py` | Defaults and shared runtime state |
+| `cli.py` | Command-line parsing, output-path validation |
+| `location.py` | Geocoding, timezone detection, observer |
+| `sky.py` / `astro.py` | Skyfield setup; phases, illumination, moon age, tithi |
+| `moon_svg.py` | SVG moons and sparklines |
+| `traditions.py` / `tradition_days.py` | Cultural calendar data and per-day lookup |
+| `html_writer.py` / `print_writer.py` | Interactive and print outputs |
+| `ics.py` | Calendar export |
+| `assets.py` / `dates.py` | CSS/JS loading, date helpers |
+| `app.py` | `main()` wiring everything together |
+
+CSS and JS stay in `css/` and `js/`.
+
+---
+
 # ⚙️ Configuration
 
-At the top of the script, you’ll find:
+Defaults live in `lunar/config.py`:
 
 ```python
 YEAR = 2025
