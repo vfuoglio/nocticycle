@@ -14,4 +14,5 @@ while the version is `0.x`, the command-line options may still change between mi
 - Cultural layers, combinable: lunar traditions (`--tradition`: Māori, Hindu, Wiccan), moon names
   (`--moon-names`: Anishinaabe, Wiccan, Almanac, Celtic tree, Chinese lunar months) and year wheels
   (`--wheel`: Wicca, Druid, Slavic, East Asian solar terms, Heathen).
-- Linux release builds: a folder build (`.tar.gz`) and an AppImage, with the ephemeris bundled.
+- Linux release builds: a folder build (`.tar.gz`) and an AppImage, with the ephemeris bundled. Built in a Debian 11
+  container (glibc 2.30 or newer); tested on Ubuntu 20.04, Debian 11 and Ubuntu 24.04.

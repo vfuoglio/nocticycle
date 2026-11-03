@@ -345,9 +345,8 @@ Download these from the [GitHub releases](../../releases) page and check them ag
   `./nocticycle/nocticycle --city "Halifax"`.
 
 The ephemeris is bundled, so the astronomy works offline; only the city lookup needs the internet (or pass
-`--tz`). The builds need a glibc at least as recent as the machine that built them (the 0.1.0 builds were
-made on a very recent distro, so they target recent distributions; to build for older ones use
-`packaging/Dockerfile`). `nocticycle --version` prints the version.
+`--tz`). The builds are made inside a Debian 11 container and need glibc 2.30 or newer (Ubuntu 20.04 and
+Debian 11 or newer, and most current distributions). `nocticycle --version` prints the version.
 
 ## From source
 
@@ -796,6 +795,16 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install skyfield tzdata geopy timezonefinder certifi pyinstaller
 packaging/build.sh        # folder build (.tar.gz), AppImage and SHA256SUMS in release/
 ```
+
+Built this way the binary needs a glibc at least as new as your machine's. For the published builds (glibc 2.30+)
+build inside an older base image instead, with Docker:
+
+```bash
+docker build -t nocticycle-build -f packaging/Dockerfile packaging
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/src nocticycle-build
+```
+
+The build downloads `appimagetool` (from its official GitHub releases) to make the AppImage.
 
 The version number lives in `lunar/__init__.py` (and appears in `nocticycle --version` and in the footer of
 every generated page). `pip install .` installs a `nocticycle` command. See `CHANGELOG.md` for the release notes.
