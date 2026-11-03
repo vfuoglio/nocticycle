@@ -1,18 +1,17 @@
 # nocticycle
 
-NoctiCycle is a Python library for exploring the rhythm of the Moon. It computes precise lunar phases, illumination, and event timings, renders elegant SVG moon icons, and generates a full year of location‑specific lunar calendars with accurate astronomical data.
+NoctiCycle is a Python tool for exploring the rhythm of the Moon. It computes precise lunar phases, illumination and event timings for **your location**, and generates a full year as a single, self-contained HTML calendar with crisp SVG moon icons.
 
 NoctiCycle computes:
 
-- Daily moon phase and illumination
-- Exact times of new and full moons (localized to your timezone)
+- Daily moon phase, illumination and moon age
+- Exact times of new, quarter and full moons (localized to your timezone)
 - Waxing/waning classification
-- Optional per‑day **illumination trend sparklines**
-- Optional rising and setting time
-- SVG moon icons rendered directly from astronomical data
-- A print‑friendly layout or a rich, cosmetic layout
+- Optional moonrise and moonset times
+- Optional per-day **illumination trend sparklines**
+- Optional cultural overlays: **Māori Maramataka**, **Hindu tithi** and **Wiccan esbat** calendars
 
-It’s a zero‑dependency, astronomy‑accurate moon calendar you can generate and view anywhere.
+It produces either a rich interactive page or a one-page, print-ready layout. The output works offline, in any browser.
 
 **Default theme**
 <a href="screenshots/calendar_2017.png">
@@ -42,7 +41,7 @@ NoctiCycle fixes that:
 - Output is a single, portable HTML file
 - You choose the year, location, and display options
 - The cosmetic mode produces a modern, elegant layout
-- The print mode produces a clean, ink‑friendly version
+- The print mode fits the whole year on one landscape page
 
 It’s perfect for planners, journals, almanacs, or anyone who loves tracking the Moon.
 
@@ -62,17 +61,19 @@ New/full moon timestamps are converted to your chosen timezone.
 
 Each day shows a crisp, resolution‑independent moon icon.
 
-### ✔ Optional illumination percentage
+### ✔ Illumination percentage
 
-Display the Moon’s brightness for each day.
+The Moon’s brightness (0–100%) for each day, on by default (`--hide-luminance` to remove it).
+On new/full moon days it is evaluated at the exact event moment unless you pass `--midnight-illumination`.
 
-### ✔ Showing rising and setting times 
+### ✔ Moonrise and moonset times
 
-Show rise and set times.
+`--show-rise-set-times` adds the local rise and set time of the Moon to each day.
 
-### ✔ Optional event times
+### ✔ Event times
 
-Show the exact moment of new/full moon on the corresponding day.
+The exact local moment of each new/full moon (and quarter, with `--show-quarters`) is shown on its day.
+Use `--hide-event-time` to turn it off.
 
 ### ✔ Optional illumination trend sparkline
 
@@ -85,8 +86,9 @@ Enabled via:
 
 ### ✔ Two display modes
 
-- **Cosmetic mode** (default): modern, elegant, visually rich
-- **Print mode** (`--print-format`): minimal, grayscale‑friendly
+- **Interactive mode** (default): modern, elegant, visually rich, with a detail card per day
+- **Print mode** (`--print-format`): the whole year on one landscape sheet, legible in black and white
+  (see [Print on one landscape page](#print-on-one-landscape-page))
 
 ### ✔ Interactive day details
 
@@ -119,21 +121,70 @@ marks first- and last-quarter days.
 
 ### ✔ Cultural lunar calendars (`--tradition`)
 
-Annotate every day with the meaning it carries in a living lunar tradition. Each one comes
-with its own banner, colour-coded day markers, a legend and a detailed entry in the day card:
+The Moon has been used as a calendar for thousands of years, and many living cultures give each
+day of the lunar month its own name, character and customs. With `--tradition` NoctiCycle lays
+one of three such calendars on top of the astronomical one. Each overlay adds a themed banner
+and legend, a colour-coded icon and short label on every day, and a full explanation in the
+day card (click any day). It works on phones and in light and dark themes.
 
-- `--tradition maori`: the **Māori Maramataka**, one named night per day (Whiro, Tirea … Rākaunui … Mutuwhenua)
-  with its energy and suggested activity (rest, fishing, planting, gathering).
-- `--tradition hindu`: the **Hindu Panchang tithi** of each day at local sunrise, split into
-  Shukla (waxing) and Krishna (waning) Paksha, with Ekadashi, Purnima, Amavasya and other
-  well-known observances flagged.
-- `--tradition wiccan`: the **Wiccan esbat** phases: initiation (waxing crescent), building,
-  full-moon esbat, banishing (waning) and dark moon rest.
+```
+--tradition maori | hindu | wiccan
+```
 
-These traditions are living and differ between communities. The names and short meanings are
-general summaries, kept in `lunar/traditions.py` so you can edit them to match your own tradition
-(for the Maramataka in particular, night names vary between iwi and regions). `--tradition` is
-available in the interactive layout only, not with `--print-format`.
+Without the option nothing changes. The overlay is for the interactive page only: with
+`--print-format` the option is ignored and a note is printed.
+
+#### `maori`: Māori Maramataka (Aotearoa New Zealand)
+
+The *Maramataka* is the traditional Māori lunar calendar. Every night of the lunar month has a
+name (about 29 in total) and a character that guided when to plant, gather, fish or rest. The
+cycle starts at the dark moon with **Whiro**, passes through the **Tamatea** nights (changeable,
+unpredictable weather and moods), peaks at **Rākaunui** around the full moon, and runs through
+the **Korekore** nights (traditionally poor for planting) and the **Tangaroa** nights (good for
+fishing) down to **Mutuwhenua**, the nights when the moon "sleeps" before the new one.
+
+NoctiCycle shows the night name for each calendar day (counted at dusk, 18:00 local time, since
+the Māori day begins with the night), coloured by character: rest, rising energy, high energy,
+Tamatea (unpredictable) and Tangaroa (sea and fishing). The day card gives the meaning.
+Southern-hemisphere places such as Auckland also get correctly mirrored moon icons.
+
+#### `hindu`: Hindu Panchang, the tithi
+
+The Hindu calendar (*Panchang*) divides the lunar month into 30 **tithis**. A tithi is the time it
+takes the Moon to gain 12° of angle on the Sun, so it is purely astronomical. The month has two
+halves, or *Pakshas*: **Shukla Paksha** (the waxing, "bright" fortnight, tithis 1–15, ending in
+**Purnima**, the full moon) and **Krishna Paksha** (the waning, "dark" fortnight, ending in
+**Amavasya**, the new moon). Many observances hang on specific tithis.
+
+NoctiCycle shows the tithi in effect at **local sunrise** for each day, the usual convention for
+assigning a tithi to a date. Shukla days are gold and Krishna days indigo. Badges mark
+**Ekadashi** (11th tithi, a fasting day), **Purnima**, **Amavasya** (honouring ancestors),
+**Chaturthi** (associated with Ganesha), **Pradosha** (13th tithi, associated with Shiva) and
+**Maha Shivaratri's** monthly form on Krishna Chaturdashi.
+
+#### `wiccan`: Wiccan esbats
+
+In Wicca and related modern pagan paths, an **esbat** is a ritual or gathering held at a lunar
+phase, most often the full moon (the eight seasonal *sabbats* follow the sun and are not part
+of this feature). Practices differ between traditions and covens, but the broad associations are
+widely shared: the waxing moon is for beginnings and growth, the full moon for peak power and
+celebration, the waning moon for banishing and release, and the dark moon for rest and
+reflection.
+
+NoctiCycle labels each day as **dark moon**, **waxing crescent** (initiation), **building**
+(first quarter to waxing gibbous), **full moon esbat** (peak) or **waning** (release), each with
+its own colour, and adds the esbat badge on full-moon days.
+
+#### Accuracy and your own version
+
+These are living traditions, and they differ between communities. The names and short meanings
+are general summaries written for this project, not authoritative statements of any tradition.
+In particular, **Maramataka night names and meanings vary between iwi and regions**, and published
+lists disagree in the middle of the cycle, so NoctiCycle uses one commonly published sequence.
+The Hindu tithi is the one at sunrise only; festival dates in a full Panchang follow further
+regional rules (and a tithi can start or end at any hour), so check a local Panchang for religious
+observance. All data lives in `lunar/traditions.py` and is easy to edit to match your own
+lineage.
 
 ### ✔ Fully offline
 
@@ -239,21 +290,20 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
 
 - New moons
 - Full moons
-- Daily illumination
-- Phase classification
-- Optional trend data
+- Quarter moons (optional)
+- Daily illumination and moon age
+- Phase classification and, optionally, rise/set times, trend data and tithi/night/esbat labels
 
 ## 3. It renders a complete HTML calendar
 
-- One year
-- Twelve months
-- Clean layout
-- SVG graphics
-- Optional sparklines
+- One year, twelve months
+- SVG moons and phase bands
+- Optional sparklines, quarters and cultural overlays
+- Or a one-page print layout
 
 ## 4. You open the file in any browser
 
-`lunar_calendar_2025.html`
+`lunar_calendar_<city>_2025.html` (or the path given with `-o`)
 
 ---
 
@@ -283,17 +333,15 @@ CSS and JS stay in `css/` and `js/`.
 Defaults live in `lunar/config.py`:
 
 ```python
-YEAR = 2025
-CITY = None          # must be provided via CLI
-TZ = None            # must be provided via CLI
-
+YEAR = 2026                    # CLI default: the current year
 SHOW_LUMINANCE = True
 SHOW_EVENT_TIME = True
 USE_EXACT_EVENT_ILLUMINATION = True
-
-COSMETICS_MODE = True
+COSMETICS_MODE = True          # False with --print-format
 ILLUMINATION_TREND = False
 ```
+
+Command-line flags override these values.
 
 ### Required CLI parameters
 
@@ -304,21 +352,27 @@ ILLUMINATION_TREND = False
 ### Optional parameters
 
 ```
---tz "Your/Timezone"       (default: detected from the city)
---year 2027                (default: current year)
--o, --output
---illumination-trend
---show-event-time
---show-luminance
---show-rise-set-times
---show-quarters
---ics [PATH]
---tradition maori|hindu|wiccan
---print-format
---paper letter|a4|legal|tabloid   (print format, default: letter)
---print-style grey|hatched|solid (print format, default: grey)
---print-layout rows|columns      (print format, default: rows)
+--tz "Your/Timezone"       timezone (default: detected from the city)
+--year 2027                year (default: current year)
+-o, --output FILE.html     output path (default: lunar_calendar_<city>_<year>.html)
+
+--show-luminance / --hide-luminance        illumination % per day (default: shown)
+--show-event-time / --hide-event-time      times of new/full moons (default: shown)
+--exact-event-illumination                 illumination at the event moment (default)
+--midnight-illumination                    illumination at local midnight instead
+--illumination-trend                       ±3-day sparkline per day
+--show-rise-set-times                      moonrise and moonset
+--show-quarters                            mark first/last quarter days
+--ics [PATH]                               export events as an .ics file
+--tradition maori|hindu|wiccan             cultural lunar calendar overlay
+
+--print-format                             one-page print layout
+--paper letter|a4|legal|tabloid            print paper size (default: letter)
+--print-style grey|hatched|solid           print moon style (default: grey)
+--print-layout rows|columns                print layout (default: rows)
 ```
+
+Run `python3 nocticycle.py --help` for the full list.
 
 ---
 
@@ -372,7 +426,12 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --illumination-tre
 python3 nocticycle.py --city "Halifax" --year 2026 --ics
 ```
 
+Writes an `.ics` file next to the HTML (or at `--ics PATH`) with the new, quarter and full moon
+events, ready to import into Google, Apple or Outlook calendars.
+
 ### Cultural calendars
+
+See [Cultural lunar calendars](#-cultural-lunar-calendars---tradition) for what each one shows.
 
 ```
 python3 nocticycle.py --city "Auckland" --tradition maori
@@ -411,8 +470,8 @@ Great for quickly seeing waxing vs waning.
 
 ### Cosmetic vs Print mode
 
-- Cosmetic mode includes colors, SVGs, sparklines, and layout enhancements.
-- Print mode strips everything down for clean physical printing.
+- Interactive mode includes colours, day cards, sparklines, rise/set times and cultural overlays.
+- Print mode strips it down to what reads well on paper: weekday, day, moon, illumination and an event list.
 
 ---
 
@@ -420,11 +479,10 @@ Great for quickly seeing waxing vs waning.
 
 NoctiCycle:
 
-- Validates timezone names
-- Ensures `--city` and `--tz` are provided
-- Handles missing ephemeris files
-- Warns about invalid years
-- Fails gracefully with clear messages
+- Looks up the city and lets you pick when the name is ambiguous
+- Validates the timezone and output path
+- Falls back gracefully when geocoding is unavailable and `--tz` is given
+- Fails with clear messages instead of tracebacks
 
 ---
 
@@ -433,8 +491,10 @@ NoctiCycle:
 The script generates:
 
 ```
-lunar_calendar_<YEAR>.html
+lunar_calendar_<city>_<YEAR>.html
 ```
+
+in the project folder, unless you choose another path with `-o`.
 
 Open it in any browser.  
 Share it. Print it. Use it in journals or planners.
@@ -451,7 +511,7 @@ Share it. Print it. Use it in journals or planners.
     
 2. NoctiCycle computes all lunar data for 2025.
     
-3. It generates `lunar_calendar_2025.html`.
+3. It generates `lunar_calendar_Halifax_2025.html`.
     
 4. You open it and see:
     
