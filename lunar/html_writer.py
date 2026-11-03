@@ -4,7 +4,8 @@ from datetime import date
 from calendar import monthrange
 from typing import Dict
 from html import escape as html_escape
-from . import traditions
+from . import traditions, wheels
+from .wheel_icons import icon_svg
 from . import config as cfg
 from .assets import js_json, load_css, load_js
 from .astro import assign_daily_phases, compute_phase_events_for_year, illumination_trend_for_date, moon_age_days, moon_illumination_percent, moon_phase_fraction, moon_rise_set_times, phase_name_for_date
@@ -46,6 +47,11 @@ def write_html(year: int, output_path: str) -> None:
     if cfg.TRADITION:
         css += "\n" + load_css("traditions") + "\n" + traditions.tradition_css(cfg.TRADITION)
 
+    if cfg.WHEEL:
+        css += "\n" + load_css("wheels") + "\n" + wheels.wheel_css(cfg.WHEEL)
+    wheel_ev = wheels.wheel_events(cfg.WHEEL, year) if cfg.WHEEL else {}
+    wheel_items: Dict[str, dict] = {}
+
     html = f"""
 <html lang="en">
 <head>
@@ -62,6 +68,9 @@ def write_html(year: int, output_path: str) -> None:
 
     day_data: Dict[str, dict] = {}
     trad_items: Dict[str, dict] = {}
+
+    if cfg.WHEEL:
+        html += wheels.banner_html(cfg.WHEEL, wheel_ev, year)
 
     if cfg.TRADITION:
         html += traditions.banner_html(cfg.TRADITION)
@@ -156,13 +165,23 @@ def write_html(year: int, output_path: str) -> None:
                     trad_items[trad_item["id"]] = trad_item
 
                 tk_attr = f" data-tk='{trad_item['k']}'" if trad_item else ""
+                wev = wheel_ev.get(day_date.isoformat())
+                wk_attr = f" data-wk='{wev['season']}'" if wev else ""
                 html += (
                     f"<td class='day-cell' data-date='{day_date.isoformat()}' "
-                    f"data-phase='{phases[d].split()[0].lower()}'{tk_attr} style='--dow:{dow}'>"
+                    f"data-phase='{phases[d].split()[0].lower()}'{tk_attr}{wk_attr} style='--dow:{dow}'>"
                 )
 
                 if cfg.COSMETICS_MODE:
                     html += f"<div class='day-number'>{d}</div>"
+
+                if wev:
+                    wheel_items[wev["id"]] = {**wev, "svg": icon_svg(wev["icon"])}
+                    tip = html_escape(f"{wev['n']} ({wev['sub']}): {wev['theme']}", quote=True)
+                    html += (
+                        f"<div class='wbadge{'' if wev['major'] else ' wminor'}' title=\"{tip}\">"
+                        f"{icon_svg(wev['icon'])}</div>"
+                    )
 
                 html += "<div class='moon-wrapper'>"
                 html += moon_svg
@@ -218,6 +237,9 @@ def write_html(year: int, output_path: str) -> None:
                     "s": set_ or "",
                 }
 
+                if wev:
+                    day_data[day_date.isoformat()]["w"] = wev["id"]
+
                 html += "</div>"  # end moon-wrapper
 
                 html += "</td>"
@@ -229,7 +251,10 @@ def write_html(year: int, output_path: str) -> None:
 
         # Close cosmetic block
         if cfg.COSMETICS_MODE:
-            html += "</table></div>"
+            html += "</table>"
+            if cfg.WHEEL:
+                html += wheels.month_strip_html(wheel_ev, year, m)
+            html += "</div>"
 
     if not cfg.COSMETICS_MODE:
         html += "</table>"
@@ -259,6 +284,16 @@ def write_html(year: int, output_path: str) -> None:
                     for k, v in spec["kinds"].items()
                 },
                 "items": trad_items,
+            }
+        if cfg.WHEEL:
+            page_data["wheel"] = {
+                "id": cfg.WHEEL,
+                "name": wheels.WHEELS[cfg.WHEEL]["name"],
+                "items": {
+                    k: {f: v[f] for f in ("n", "sub", "kind", "season", "theme", "celebrates",
+                                          "about", "svg", "time", "approx", "flipped") if f in v}
+                    for k, v in wheel_items.items()
+                },
             }
         html += (
             f'<script id="nocticycle-data" type="application/json">{js_json(page_data)}</script>'

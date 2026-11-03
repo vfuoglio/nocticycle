@@ -1,0 +1,180 @@
+/* ===== Year wheels (--wheel) =====
+   Season colours (--wk, via data-wk) and the wheel accent (--wa) are generated
+   by lunar/wheels.py. */
+
+/* ----- Banner ----- */
+.wheel-banner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto 22px auto;
+    padding: 16px 22px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid color-mix(in srgb, var(--wa) 45%, transparent);
+    background:
+        radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--wa) 20%, transparent), transparent 55%),
+        rgba(15, 18, 26, 0.96);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+}
+
+.wheel-art-wrap {
+    flex: 0 0 auto;
+    width: 190px;
+    height: 190px;
+    color: var(--wa);
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--wa) 40%, transparent));
+}
+
+.wheel-art { width: 100%; height: 100%; display: block; }
+
+.wheel-text { min-width: 0; }
+
+.wheel-title {
+    font-family: "Merriweather", "Georgia", serif;
+    font-size: 20px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--wa);
+}
+
+.wheel-blurb { margin: 6px 0 12px 0; font-size: 12px; line-height: 1.5; }
+
+.wheel-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.wheel-chip, .wchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--wk);
+    background: color-mix(in srgb, var(--wk) 14%, transparent);
+    color: var(--wk);
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.wheel-chip .wi, .wchip .wi { width: 16px; height: 16px; flex: 0 0 auto; }
+.wheel-chip i { font-style: normal; font-weight: 400; opacity: 0.8; }
+.wheel-chip b, .wchip b { font-weight: 700; }
+.wchip b { padding-right: 2px; }
+
+.wheel-keys { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 10px; opacity: 0.85; }
+.wheel-key { display: inline-flex; align-items: center; gap: 5px; }
+.wheel-key-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--wk); }
+
+.wheel-more, .wheel-south { margin: 8px 0 0 0; font-size: 10.5px; opacity: 0.85; }
+.wheel-note { margin: 10px 0 0 0; font-size: 10px; font-style: italic; opacity: 0.7; }
+
+/* ----- Month strip ----- */
+.wheel-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.wchip.wminor { font-weight: 500; opacity: 0.85; }
+
+/* ----- Day cells ----- */
+.day-cell[data-wk] {
+    outline: 1.5px solid var(--wk);
+    outline-offset: -2px;
+    background-image: linear-gradient(180deg,
+        color-mix(in srgb, var(--wk) 20%, transparent), transparent 70%);
+}
+
+.wbadge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    color: var(--wk);
+    background: var(--wa-bg);
+    border: 1px solid var(--wk);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--wk) 50%, transparent);
+}
+
+.wbadge .wi { width: 100%; height: 100%; display: block; }
+.wbadge.wminor { width: 15px; height: 15px; padding: 1px; box-shadow: none; opacity: 0.9; }
+
+/* ----- Day card section ----- */
+.dc-wheel {
+    margin-top: 12px;
+    padding: 12px 14px;
+    text-align: left;
+    border-radius: 12px;
+    border: 1px solid var(--wk);
+    background:
+        radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--wk) 22%, transparent), transparent 60%),
+        color-mix(in srgb, var(--wk) 6%, transparent);
+}
+
+.dc-w-head { display: flex; align-items: center; gap: 12px; }
+
+.dc-w-icon {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    padding: 8px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    color: var(--wk);
+    background: var(--wa-bg);
+    border: 1.5px solid var(--wk);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--wk) 45%, transparent);
+}
+
+.dc-w-icon .wi { width: 100%; height: 100%; display: block; }
+
+.dc-w-wheel {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--wa);
+}
+
+.dc-w-name { font-family: "Merriweather", "Georgia", serif; font-size: 20px; font-weight: 700; color: var(--wk); line-height: 1.15; }
+.dc-w-sub { font-size: 11px; opacity: 0.8; margin-top: 1px; }
+
+.dc-w-theme {
+    display: inline-block;
+    margin: 10px 0 0 0;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--wk);
+    background: color-mix(in srgb, var(--wk) 16%, transparent);
+    color: var(--wk);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.dc-w-label {
+    margin: 10px 0 2px 0;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.65;
+}
+
+.dc-wheel p { margin: 0; font-size: 12px; line-height: 1.5; }
+.dc-w-meta { margin-top: 10px; font-size: 10px; opacity: 0.7; }
+
+@media (max-width: 800px) {
+    .wheel-banner { flex-direction: column; text-align: center; padding: 14px; }
+    .wheel-art-wrap { width: 150px; height: 150px; }
+    .wheel-chips, .wheel-keys { justify-content: center; }
+    .wbadge { width: 16px; height: 16px; top: 2px; right: 2px; }
+    .wbadge.wminor { width: 12px; height: 12px; }
+}
+
+@media (prefers-color-scheme: light) {
+    .wheel-banner {
+        background:
+            radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--wa) 16%, transparent), transparent 55%),
+            #ffffff;
+        box-shadow: 0 8px 22px rgba(46, 52, 64, 0.14);
+    }
+    .wbadge { box-shadow: 0 0 6px color-mix(in srgb, var(--wk) 35%, transparent); }
+}

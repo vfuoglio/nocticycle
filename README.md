@@ -10,6 +10,7 @@ NoctiCycle computes:
 - Optional moonrise and moonset times
 - Optional per-day **illumination trend sparklines**
 - Optional cultural overlays: **Māori Maramataka**, **Hindu tithi** and **Wiccan esbat** calendars
+- Optional **year wheels**: the yearly festivals of Wicca, Druidry, Slavic Rodnovery, East Asia (24 solar terms) and Heathenry
 
 It produces either a rich interactive page or a one-page, print-ready layout. The output works offline, in any browser.
 
@@ -198,6 +199,58 @@ regional rules (and a tithi can start or end at any hour), so check a local Panc
 observance. All data lives in `lunar/traditions.py` and is easy to edit to match your own
 lineage.
 
+### ✔ Year wheels (`--wheel`)
+
+Where `--tradition` follows the *Moon* through the month, a **year wheel** follows the *Sun* through the
+year: the festivals that a tradition keeps at the solstices, equinoxes and in between. Each festival
+appears on its day with its own icon, in a colour that shows its season, on a wheel graphic in the
+banner and as a chip under its month. Click the day (or the chip) and the day card explains the
+festival: its **name**, its **theme**, **what is celebrated** and what happens on the day.
+
+```
+--wheel wicca | druid | slavic | eastasian | heathen
+```
+
+A wheel can be **combined with a tradition**: for example `--wheel wicca --tradition wiccan` shows the
+Wheel of the Year together with the Wiccan esbats, and the day card shows both.
+
+<a href="screenshots/wheel_wicca_esbat.png">
+  <img src="screenshots/wheel_wicca_esbat.png" alt="Wheel of the Year with the Wiccan esbats (Halifax, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+| `--wheel` | Tradition | Festivals |
+|---|---|---|
+| `wicca` | **Wicca: the Wheel of the Year.** Eight Sabbats following the Goddess and the Horned God: four solar *Minor Sabbats* and four *Major Sabbats* (fire festivals). | Yule, Imbolc, Ostara, Beltane, Litha, Lughnasadh, Mabon, Samhain |
+| `druid` | **Modern Druidry: the Eightfold Wheel.** Close to the Wiccan wheel in structure, but centred on *Awen* (divine inspiration) and the local landscape. | Alban Arthuan, Imbolc, Alban Eilir, Beltane, Alban Heruin, Lughnasadh, Alban Elued, Samhain |
+| `slavic` | **Rodnovery: Kolo Goda.** The living Slavic native faith, anchored in Slavic folklore and gods such as Perun and Veles, and in ancestor remembrance. | Koliada, Gromnica, Jare Gody, Radonitsa, Kupala Night, Perun's Day, Plodovi, Dziady |
+| `eastasian` | **East Asian calendars: the 24 solar terms** (*jiéqì*), used in China, Korea, Vietnam and Japan for farming, health and festivals. The eight cornerstones (solstices, equinoxes and the four "starts" of the seasons) are shown as icons and the other sixteen as small markers. | Lìchūn, Chūnfēn, Lìxià, Xiàzhì, Lìqiū, Qiūfēn, Lìdōng, Dōngzhì, plus 16 more |
+| `heathen` | **Heathenry / Ásatrú: seasonal tides.** A living calendar of communal *blóts*. Many Heathens avoid Wiccan terms, so the names here are the Norse and Germanic ones. | Yule, Dísablót, Ostara/Sigrblót, Midsummer, Winter Finding, Winternights |
+
+<a href="screenshots/wheel_day_card.png">
+  <img src="screenshots/wheel_day_card.png" alt="The day card for Ostara, with the Wiccan esbat below (Halifax, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+**How the dates are found.** Solstices, equinoxes and the 24 solar terms are computed from the Sun's
+position (its ecliptic longitude), to the minute, in your timezone, so they are right for any year. The
+day card shows the exact moment. The cross-quarter festivals (Imbolc, Beltane, Lughnasadh, Samhain and
+similar) have fixed dates; they traditionally begin at sunset on the evening before.
+
+**Southern hemisphere.** The Wicca, Druid and Heathen wheels describe the northern seasons, so for a
+location south of the equator they are shifted by six months, the common practice: Yule falls at the
+June solstice and Samhain at the end of April, for example. The Slavic and East Asian wheels are tied to
+the northern hemisphere's seasons and are never shifted.
+
+<a href="screenshots/wheel_eastasian.png">
+  <img src="screenshots/wheel_eastasian.png" alt="The 24 solar terms for Tokyo, 2025" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+**Accuracy.** These are living traditions and groups differ in names, dates and customs. The texts are
+short, general summaries written for this project, and several fixed dates are approximate (Radonitsa,
+Perun's Day, Dziady, Dísablót and Winternights vary between communities; the day card says so). All
+the data is in `lunar/wheels.py` and easy to edit. `--wheel` is only available in the interactive layout
+and is ignored, with a note, when you use `--print-format`. With `--ics` the festivals are also exported
+as all-day events.
+
 ### ✔ Fully offline
 
 Once generated, the HTML file requires no internet connection.
@@ -331,6 +384,7 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
 | `sky.py` / `astro.py` | Skyfield setup; phases, illumination, moon age, tithi |
 | `moon_svg.py` | SVG moons and sparklines |
 | `traditions.py` / `tradition_days.py` | Cultural calendar data and per-day lookup |
+| `wheels.py` / `wheel_icons.py` / `solar.py` | Year-wheel festivals and icons; solar terms computed from the Sun |
 | `html_writer.py` / `print_writer.py` | Interactive and print outputs |
 | `ics.py` | Calendar export |
 | `assets.py` / `dates.py` | CSS/JS loading, date helpers |
@@ -377,6 +431,7 @@ Command-line flags override these values.
 --show-quarters                            mark first/last quarter days
 --ics [PATH]                               export events as an .ics file
 --tradition maori|hindu|wiccan             cultural lunar calendar overlay
+--wheel wicca|druid|slavic|eastasian|heathen   yearly festivals (year wheel), combinable with --tradition
 
 --print-format                             one-page print layout
 --paper letter|a4|legal|tabloid            print paper size (default: letter)
@@ -449,6 +504,17 @@ See [Cultural lunar calendars](#-cultural-lunar-calendars---tradition) for what 
 python3 nocticycle.py --city "Auckland" --tradition maori
 python3 nocticycle.py --city "Varanasi" --tradition hindu --show-rise-set-times
 python3 nocticycle.py --city "Halifax" --tradition wiccan
+```
+
+### Year wheels
+
+See [Year wheels](#-year-wheels---wheel) for what each one shows.
+
+```
+python3 nocticycle.py --city "Halifax" --wheel wicca
+python3 nocticycle.py --city "Tokyo" --wheel eastasian
+python3 nocticycle.py --city "Halifax" --wheel wicca --tradition wiccan   # wheel + esbats
+python3 nocticycle.py --city "Auckland" --wheel druid --tradition maori --ics
 ```
 
 ### Mark quarter moons

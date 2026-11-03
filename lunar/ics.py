@@ -1,4 +1,4 @@
-"""iCalendar (.ics) export of the lunar events."""
+"""iCalendar (.ics) export of the lunar events (and year-wheel festivals)."""
 
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -54,6 +54,23 @@ def build_ics(year: int) -> str:
             "TRANSP:TRANSPARENT",
             "END:VEVENT",
         ]
+    if cfg.WHEEL:
+        from . import wheels
+        for iso, ev in sorted(wheels.wheel_events(cfg.WHEEL, year).items()):
+            day = datetime.fromisoformat(iso)
+            nxt = day + timedelta(days=1)
+            text = f"{ev['theme']}. {ev['celebrates']}"
+            lines += [
+                "BEGIN:VEVENT",
+                f"UID:wheel-{cfg.WHEEL}-{ev['id']}-{iso}@nocticycle",
+                f"DTSTAMP:{stamp}",
+                f"DTSTART;VALUE=DATE:{day.strftime('%Y%m%d')}",
+                f"DTEND;VALUE=DATE:{nxt.strftime('%Y%m%d')}",
+                f"SUMMARY:{esc(ev['n'] + ' (' + ev['sub'] + ')')}",
+                f"DESCRIPTION:{esc(text)}",
+                "TRANSP:TRANSPARENT",
+                "END:VEVENT",
+            ]
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n"
 

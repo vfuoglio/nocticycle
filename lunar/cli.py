@@ -4,6 +4,7 @@ from datetime import date
 import argparse
 import os
 from . import traditions
+from . import wheels
 from . import config as cfg
 
 
@@ -48,6 +49,10 @@ def parse_cli_args():
     --tradition : str
         Annotate each day with a cultural lunar tradition: maori, hindu or
         wiccan (interactive layout only).
+
+    --wheel : str
+        Add the yearly festivals of a tradition (a "year wheel"): wicca,
+        druid, slavic, eastasian or heathen (interactive layout only).
 
     --show-quarters : bool
         Mark first-quarter and last-quarter days in the calendar.
@@ -129,6 +134,12 @@ def parse_cli_args():
                         help="Annotate every day with a cultural lunar calendar: 'maori' "
                              "(Maramataka nights), 'hindu' (Panchang tithi) or 'wiccan' "
                              "(esbat phases). Not available with --print-format.")
+
+    parser.add_argument("--wheel", choices=wheels.WHEEL_CHOICES, default=None,
+                        help="Add the yearly festivals of a tradition on top of the calendar: "
+                             "'wicca' (Wheel of the Year), 'druid' (Eightfold Wheel), 'slavic' "
+                             "(Kolo Goda), 'eastasian' (24 solar terms) or 'heathen' (Seasonal "
+                             "Tides). Combines with --tradition. Not available with --print-format.")
 
     parser.add_argument("--show-quarters", action="store_true",
                         help="Mark first-quarter and last-quarter days (with their times).")
@@ -239,6 +250,7 @@ def apply_cli_to_globals(args):
     cfg.SHOW_RISE_SET_TIMES = args.show_rise_set_times
     cfg.SHOW_QUARTERS = args.show_quarters
     cfg.TRADITION = args.tradition
+    cfg.WHEEL = args.wheel
     cfg.PAPER = args.paper
     cfg.PRINT_STYLE = args.print_style
     cfg.PRINT_LAYOUT = args.print_layout

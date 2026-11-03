@@ -31,6 +31,11 @@ def main():
               "ignoring it for --print-format.")
         cfg.TRADITION = None
 
+    if cfg.WHEEL and not cfg.COSMETICS_MODE:
+        print("Note: --wheel is only available in the interactive layout; "
+              "ignoring it for --print-format.")
+        cfg.WHEEL = None
+
     # Resolve the location first: it provides the timezone when --tz is
     # omitted and the hemisphere used to orient the moon icons.
     tz_given = cfg.TZ is not None

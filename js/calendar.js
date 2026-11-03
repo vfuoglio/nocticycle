@@ -138,6 +138,26 @@
       "<p>" + esc(it.m) + "</p></div>";
   }
 
+  function wheelBlock(info) {
+    var wh = data.wheel;
+    if (!wh || !info.w || !wh.items[info.w]) { return ""; }
+    var it = wh.items[info.w];
+    var meta = [];
+    if (it.time) { meta.push("Exact moment: " + esc(it.time) + " local time"); }
+    if (it.approx) { meta.push("Fixed, approximate date: it varies between communities"); }
+    if (it.flipped) { meta.push("Dated for the southern hemisphere"); }
+    return '<div class="dc-wheel" data-wk="' + esc(it.season) + '">' +
+      '<div class="dc-w-head"><div class="dc-w-icon">' + it.svg + "</div><div>" +
+        '<div class="dc-w-wheel">' + esc(wh.name) + " &middot; " + esc(it.kind) + "</div>" +
+        '<div class="dc-w-name">' + esc(it.n) + "</div>" +
+        '<div class="dc-w-sub">' + esc(it.sub) + "</div></div></div>" +
+      '<div class="dc-w-theme">Theme: ' + esc(it.theme) + "</div>" +
+      '<div class="dc-w-label">What is celebrated</div><p>' + esc(it.celebrates) + "</p>" +
+      '<div class="dc-w-label">About this day</div><p>' + esc(it.about) + "</p>" +
+      (meta.length ? '<div class="dc-w-meta">' + meta.join(" &middot; ") + "</div>" : "") +
+      "</div>";
+  }
+
   function buildCard() {
     backdrop = document.createElement("div");
     backdrop.className = "dc-backdrop";
@@ -192,7 +212,7 @@
       "</div>" +
       '<div class="dc-moon">' + (svg ? svg.outerHTML : "") + "</div>" +
       '<div class="dc-phase">' + esc(info.n || "") + "</div>" +
-      '<div class="dc-rows">' + rows + "</div>" + traditionBlock(info);
+      '<div class="dc-rows">' + rows + "</div>" + wheelBlock(info) + traditionBlock(info);
 
     var big = card.querySelector(".moon-svg");
     if (big) { big.classList.add("dc-moon-svg"); }
@@ -231,6 +251,16 @@
     if (e.key === "Escape") { closeCard(); }
     else if (e.key === "ArrowLeft") { showDay(current - 1); }
     else if (e.key === "ArrowRight") { showDay(current + 1); }
+  });
+
+  document.querySelectorAll(".wchip[data-wd]").forEach(function (chip) {
+    chip.style.cursor = "pointer";
+    chip.addEventListener("click", function () {
+      var iso = chip.getAttribute("data-wd");
+      for (var i = 0; i < cells.length; i++) {
+        if (cells[i].getAttribute("data-date") === iso) { openCard(i); return; }
+      }
+    });
   });
 
   setupToday();

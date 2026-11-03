@@ -72,6 +72,7 @@ ILLUMINATION_TREND: bool = False
 SHOW_RISE_SET_TIMES: bool = False
 SHOW_QUARTERS: bool = False
 TRADITION: str | None = None
+WHEEL: str | None = None
 
 USE_EXACT_EVENT_ILLUMINATION: bool = True
 
