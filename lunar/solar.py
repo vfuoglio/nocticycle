@@ -4,8 +4,8 @@ Solstices and equinoxes are the terms at 270°, 90°, 0° and 180°; the East As
 calendar uses all 24. Results are cached per (year, timezone).
 """
 
-from datetime import datetime
 from functools import lru_cache
+from zoneinfo import ZoneInfo
 
 from skyfield import almanac
 from skyfield.framelib import ecliptic_frame
@@ -30,7 +30,7 @@ def _terms(year: int, tz_name: str) -> dict:
     t1 = ts.utc(year + 1, 1, 10)
     times, idx = almanac.find_discrete(t0, t1, _sun_term_index)
     out = {}
-    tz = cfg.TZINFO
+    tz = ZoneInfo(tz_name)
     for t, k in zip(times, idx):
         local = t.utc_datetime().astimezone(tz)
         if local.year == year:
@@ -38,6 +38,10 @@ def _terms(year: int, tz_name: str) -> dict:
     return out
 
 
-def solar_terms(year: int) -> dict:
-    """Map Sun longitude (0, 15, ... 345) to the local datetime it is reached in `year`."""
-    return _terms(year, str(cfg.TZ))
+def solar_terms(year: int, tz_name: str | None = None) -> dict:
+    """Map Sun longitude (0, 15, ... 345) to the datetime it is reached in `year`.
+
+    Times are in the calendar's timezone, or in `tz_name` when given (the
+    Chinese calendar uses Asia/Shanghai).
+    """
+    return _terms(year, tz_name or str(cfg.TZ))

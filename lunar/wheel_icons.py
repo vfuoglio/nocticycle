@@ -206,6 +206,9 @@ _BODY = {
     ),
 }
 
+from .icons_moon import BODY as _MOON_BODY  # noqa: E402
+_BODY.update(_MOON_BODY)
+
 
 def icon_names() -> list:
     return sorted(_BODY)

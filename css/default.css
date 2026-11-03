@@ -488,9 +488,9 @@ td {
     .month-block tr { display: block; }
 
     /* The phase band row cannot span a week grid; each day carries its own accent. */
-    .month-block tr:first-child { display: none; }
+    .month-block tr.phase-row { display: none; }
 
-    .month-block tr:nth-child(2) {
+    .month-block tr.day-row {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 3px;

@@ -5,6 +5,7 @@ import argparse
 import os
 from . import traditions
 from . import wheels
+from . import moon_names
 from . import config as cfg
 
 
@@ -53,6 +54,10 @@ def parse_cli_args():
     --wheel : str
         Add the yearly festivals of a tradition (a "year wheel"): wicca,
         druid, slavic, eastasian or heathen (interactive layout only).
+
+    --moon-names : str
+        Name each lunation: anishinaabe, wiccan, almanac, celtic or chinese
+        (interactive layout only).
 
     --show-quarters : bool
         Mark first-quarter and last-quarter days in the calendar.
@@ -140,6 +145,12 @@ def parse_cli_args():
                              "'wicca' (Wheel of the Year), 'druid' (Eightfold Wheel), 'slavic' "
                              "(Kolo Goda), 'eastasian' (24 solar terms) or 'heathen' (Seasonal "
                              "Tides). Combines with --tradition. Not available with --print-format.")
+
+    parser.add_argument("--moon-names", choices=moon_names.MOON_NAME_CHOICES, default=None,
+                        help="Name each lunation: 'anishinaabe' (Ojibwe 13 moons), 'wiccan' (esbat "
+                             "names), 'almanac' (Algonquin / Almanac names), 'celtic' (Celtic tree "
+                             "calendar) or 'chinese' (lunar months). Combines with --tradition and "
+                             "--wheel. Not available with --print-format.")
 
     parser.add_argument("--show-quarters", action="store_true",
                         help="Mark first-quarter and last-quarter days (with their times).")
@@ -251,6 +262,7 @@ def apply_cli_to_globals(args):
     cfg.SHOW_QUARTERS = args.show_quarters
     cfg.TRADITION = args.tradition
     cfg.WHEEL = args.wheel
+    cfg.MOON_NAMES = args.moon_names
     cfg.PAPER = args.paper
     cfg.PRINT_STYLE = args.print_style
     cfg.PRINT_LAYOUT = args.print_layout

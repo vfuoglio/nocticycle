@@ -10,6 +10,7 @@ NoctiCycle computes:
 - Optional moonrise and moonset times
 - Optional per-day **illumination trend sparklines**
 - Optional cultural overlays: **Māori Maramataka**, **Hindu tithi** and **Wiccan esbat** calendars
+- Optional **moon names**: the Anishinaabe, Wiccan, Almanac, Celtic tree and Chinese lunar-month names
 - Optional **year wheels**: the yearly festivals of Wicca, Druidry, Slavic Rodnovery, East Asia (24 solar terms) and Heathenry
 
 It produces either a rich interactive page or a one-page, print-ready layout. The output works offline, in any browser.
@@ -199,6 +200,62 @@ regional rules (and a tithi can start or end at any hour), so check a local Panc
 observance. All data lives in `lunar/traditions.py` and is easy to edit to match your own
 lineage.
 
+### ✔ Moon names (`--moon-names`)
+
+Many cultures name the moons of the year: the Wolf Moon, the Sugar Moon, the Strawberry Moon. With
+`--moon-names` every **lunation** (new moon to next new moon) gets a name, shown as a coloured ribbon with
+an icon above its days and as an icon badge on the day of its full moon. A banner shows the whole set as a
+ring of icons, one chip under each month lists its named full moon, and the day card tells you **what the
+name means** and **what that moon is about**, with a bar showing where the day falls in the lunation.
+
+```
+--moon-names anishinaabe | wiccan | almanac | celtic | chinese
+```
+
+<a href="screenshots/moons_anishinaabe.png">
+  <img src="screenshots/moons_anishinaabe.png" alt="Anishinaabe moon names (Halifax, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+| `--moon-names` | System | Names |
+|---|---|---|
+| `anishinaabe` | **Anishinaabe (Ojibwe) 13 moons.** Guided by the 13 scutes of the turtle's shell; the names are a seasonal map of life on the land: the run of the suckerfish, the maple sap, the berries, the corn. | Manidoo Giizis (Spirit Moon), Mkwa Giizis (Bear), Ziisbaakdoke (Sugar), Namebine (Sucker), Waawaaskone (Flower), Ode'miin (Strawberry), Mskomini (Raspberry), Datkaagmin (Thimbleberry), Mdaamiin (Corn), Biinaakwe (Falling Leaves), Mshkawji (Freezing), Manidoo Giizoonhs (Little Spirit), Big Spirit Moon |
+| `wiccan` | **Wiccan / Pagan esbat moons.** A ritual calendar: each name carries an energy for intention and change. | Wolf/Storm, Snow/Ice, Worm/Seed, Hare/Egg, Flower/Dyad, Mead, Wort/Hay, Barley/Corn, Harvest, Blood/Hunter's, Oak/Frosty, Cold/Long Night, Blue/Black |
+| `almanac` | **Almanac / Algonquin ("colonial hybrid").** The best-known names outside religious practice, popularised by agricultural almanacs. | Wolf, Snow, Worm, Pink, Flower, Strawberry, Buck, Sturgeon, Corn/Harvest, Hunter's, Beaver, Cold, Blue |
+| `celtic` | **Celtic Tree Calendar.** Thirteen 28-day tree months from 24 December, named for the Ogham trees. A lunation takes the tree month of its full moon. | Birch, Rowan, Ash, Alder, Willow, Hawthorn, Oak, Holly, Hazel, Vine, Ivy, Reed, Elder |
+| `chinese` | **Chinese lunar months.** A true lunar calendar: months start at the new moon, the New Year is the second new moon after the winter solstice, and a leap month is added about every three years. | Months 1 to 12 (each with its flower and season), leap months, and the lunar date of every day, with the eight best-known festivals (Spring, Lantern, Dragon Boat, Qixi, Ghost, Mid-Autumn, Double Ninth, Laba) |
+
+<a href="screenshots/moons_chinese.png">
+  <img src="screenshots/moons_chinese.png" alt="Chinese lunar months (Beijing, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+**The naming rule.** For the first three systems (and the tree calendar) a lunation takes the name of the
+calendar month in which its **full moon** falls. When a month has **two full moons**, the second is the 13th,
+leap moon: the **Blue Moon** (the *Big Spirit Moon* in the Anishinaabe set). The Wiccan set also marks a
+**Black Moon**, the second new moon of a month, on its day. The Chinese months follow the official rules,
+computed from the sky in Beijing time (so Lunar New Year falls on 29 January 2025 and 17 February 2026, and 2025
+has a leap sixth month).
+
+<a href="screenshots/moons_blue_moon_card.png">
+  <img src="screenshots/moons_blue_moon_card.png" alt="The Blue Moon day card (Halifax, 30 August 2023)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+**Layers combine.** `--moon-names`, `--wheel` and `--tradition` are independent: you can show named moons,
+a year wheel and a lunar tradition at the same time, and the day card shows a section for each.
+
+<a href="screenshots/moons_three_layers.png">
+  <img src="screenshots/moons_three_layers.png" alt="Moon names, Wheel of the Year and Maramataka together (Auckland, 30 April 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
+**Accuracy and respect.** These are living traditions and the names differ between communities, authors and
+regions. The Anishinaabe, Wiccan and Almanac names follow a published table; the meanings are short general
+summaries written for this project, not authoritative teachings, and the Anishinaabe teachings in particular
+should be learned from your own community. The Celtic Tree Calendar was assembled by the poet Robert Graves in
+1948 and has no ancient Celtic origin. The names come from northern-hemisphere seasons, so for the southern
+hemisphere they are shown as published, with a note, and not shifted. The Chinese names and festivals appear in
+Chinese characters on the day card, which need a CJK font (installed by default on most systems). All the data is
+in `lunar/moon_names.py` and easy to edit. `--moon-names` is only available in the interactive layout and is ignored,
+with a note, when you use `--print-format`. With `--ics` the full-moon events carry the moon's name.
+
 ### ✔ Year wheels (`--wheel`)
 
 Where `--tradition` follows the *Moon* through the month, a **year wheel** follows the *Sun* through the
@@ -385,6 +442,7 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
 | `moon_svg.py` | SVG moons and sparklines |
 | `traditions.py` / `tradition_days.py` | Cultural calendar data and per-day lookup |
 | `wheels.py` / `wheel_icons.py` / `solar.py` | Year-wheel festivals and icons; solar terms computed from the Sun |
+| `moon_names.py` / `lunations.py` / `icons_moon.py` | Named moons; lunations, Blue/Black Moons and the Chinese calendar; moon icons |
 | `html_writer.py` / `print_writer.py` | Interactive and print outputs |
 | `ics.py` | Calendar export |
 | `assets.py` / `dates.py` | CSS/JS loading, date helpers |
@@ -432,6 +490,7 @@ Command-line flags override these values.
 --ics [PATH]                               export events as an .ics file
 --tradition maori|hindu|wiccan             cultural lunar calendar overlay
 --wheel wicca|druid|slavic|eastasian|heathen   yearly festivals (year wheel), combinable with --tradition
+--moon-names anishinaabe|wiccan|almanac|celtic|chinese   name every lunation (13 moons etc.)
 
 --print-format                             one-page print layout
 --paper letter|a4|legal|tabloid            print paper size (default: letter)
@@ -504,6 +563,17 @@ See [Cultural lunar calendars](#-cultural-lunar-calendars---tradition) for what 
 python3 nocticycle.py --city "Auckland" --tradition maori
 python3 nocticycle.py --city "Varanasi" --tradition hindu --show-rise-set-times
 python3 nocticycle.py --city "Halifax" --tradition wiccan
+```
+
+### Moon names
+
+See [Moon names](#-moon-names---moon-names) for what each one shows.
+
+```
+python3 nocticycle.py --city "Halifax" --moon-names almanac
+python3 nocticycle.py --city "Thunder Bay" --moon-names anishinaabe --ics
+python3 nocticycle.py --city "Beijing" --moon-names chinese --wheel eastasian
+python3 nocticycle.py --city "Auckland" --moon-names wiccan --wheel wicca --tradition maori   # three layers
 ```
 
 ### Year wheels

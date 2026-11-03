@@ -4,7 +4,7 @@ from datetime import date
 from calendar import monthrange
 from typing import Dict
 from html import escape as html_escape
-from . import traditions, wheels
+from . import moon_names, traditions, wheels
 from .wheel_icons import icon_svg
 from . import config as cfg
 from .assets import js_json, load_css, load_js
@@ -49,6 +49,10 @@ def write_html(year: int, output_path: str) -> None:
 
     if cfg.WHEEL:
         css += "\n" + load_css("wheels") + "\n" + wheels.wheel_css(cfg.WHEEL)
+    layer = None
+    if cfg.MOON_NAMES:
+        layer = moon_names.MoonLayer(cfg.MOON_NAMES, year)
+        css += "\n" + load_css("moonnames") + "\n" + layer.css()
     wheel_ev = wheels.wheel_events(cfg.WHEEL, year) if cfg.WHEEL else {}
     wheel_items: Dict[str, dict] = {}
 
@@ -68,6 +72,9 @@ def write_html(year: int, output_path: str) -> None:
 
     day_data: Dict[str, dict] = {}
     trad_items: Dict[str, dict] = {}
+
+    if layer:
+        html += layer.banner_html()
 
     if cfg.WHEEL:
         html += wheels.banner_html(cfg.WHEEL, wheel_ev, year)
@@ -98,6 +105,7 @@ def write_html(year: int, output_path: str) -> None:
                     <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                 </div>
                 <table>
+                <tr class="phase-row">
             """
         else:
             html += f"<tr><td rowspan='2'><b>{month_name(m)}</b></td>"
@@ -135,8 +143,11 @@ def write_html(year: int, output_path: str) -> None:
                 html += "<td></td>"
         html += "</tr>\n"
 
+        if layer and cfg.COSMETICS_MODE:
+            html += layer.ribbon_row_html(m, days)
+
         # Row 2: moon icons + brightness + SPARKLINE
-        html += "<tr>"
+        html += "<tr class='day-row'>"
         for d in range(1, 32):
             if d <= days:
                 day_date = date(year, m, d)
@@ -174,6 +185,9 @@ def write_html(year: int, output_path: str) -> None:
 
                 if cfg.COSMETICS_MODE:
                     html += f"<div class='day-number'>{d}</div>"
+
+                if layer:
+                    html += layer.badge_html(day_date.isoformat())
 
                 if wev:
                     wheel_items[wev["id"]] = {**wev, "svg": icon_svg(wev["icon"])}
@@ -239,6 +253,10 @@ def write_html(year: int, output_path: str) -> None:
 
                 if wev:
                     day_data[day_date.isoformat()]["w"] = wev["id"]
+                if layer:
+                    seg_i = layer.day_seg.get(day_date.isoformat())
+                    if seg_i is not None:
+                        day_data[day_date.isoformat()]["m"] = layer.segments[seg_i]["id"]
 
                 html += "</div>"  # end moon-wrapper
 
@@ -252,6 +270,8 @@ def write_html(year: int, output_path: str) -> None:
         # Close cosmetic block
         if cfg.COSMETICS_MODE:
             html += "</table>"
+            if layer:
+                html += layer.month_strip_html(m)
             if cfg.WHEEL:
                 html += wheels.month_strip_html(wheel_ev, year, m)
             html += "</div>"
@@ -285,6 +305,8 @@ def write_html(year: int, output_path: str) -> None:
                 },
                 "items": trad_items,
             }
+        if layer:
+            page_data["moonNames"] = layer.payload()
         if cfg.WHEEL:
             page_data["wheel"] = {
                 "id": cfg.WHEEL,

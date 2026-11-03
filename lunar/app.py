@@ -36,6 +36,11 @@ def main():
               "ignoring it for --print-format.")
         cfg.WHEEL = None
 
+    if cfg.MOON_NAMES and not cfg.COSMETICS_MODE:
+        print("Note: --moon-names is only available in the interactive layout; "
+              "ignoring it for --print-format.")
+        cfg.MOON_NAMES = None
+
     # Resolve the location first: it provides the timezone when --tz is
     # omitted and the hemisphere used to orient the moon icons.
     tz_given = cfg.TZ is not None

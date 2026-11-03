@@ -158,6 +158,71 @@
       "</div>";
   }
 
+  function isoDays(iso) {
+    var p = iso.split("-");
+    return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000;
+  }
+
+  function moonNameBlock(info, iso) {
+    var mn = data.moonNames;
+    if (!mn || !info.m || !mn.items[info.m]) { return ""; }
+    var it = mn.items[info.m];
+    var extra = (mn.extra && mn.extra[iso]) || {};
+    var sub = [];
+    if (it.en) { sub.push(it.en); }
+    if (it.alt) { sub.push("also " + it.alt); }
+    if (it.hint) { sub.push(it.hint); }
+
+    var badges = "";
+    if (it.blue) { badges += '<span class="dc-n-badge">Blue Moon</span>'; }
+    if (it.leap) { badges += '<span class="dc-n-badge">Leap month</span>'; }
+    if (extra.black) { badges += '<span class="dc-n-badge">Black Moon</span>'; }
+    if (extra.ld) { badges += '<span class="dc-n-badge">' + esc(extra.ld) + "</span>"; }
+
+    var bar = "";
+    var total = isoDays(it.end) - isoDays(it.start);
+    if (total > 0) {
+      var now = (isoDays(iso) - isoDays(it.start) + 0.5) / total * 100;
+      var full = it.full ? (isoDays(it.full) - isoDays(it.start) + 0.5) / total * 100 : null;
+      bar = '<div class="dc-n-bar-label"><span>' + esc(shortDate(it.start)) + "</span><span>day " +
+        (isoDays(iso) - isoDays(it.start) + 1) + " of " + total + "</span><span>" +
+        esc(shortDate(it.end, -1)) + "</span></div>" +
+        '<div class="dc-n-bar">' +
+        (full !== null ? '<i class="full" style="left:' + full.toFixed(1) + '%" title="Full moon"></i>' : "") +
+        '<i class="now" style="left:' + now.toFixed(1) + '%" title="This day"></i></div>';
+    }
+
+    var fest = "";
+    if (extra.fest) {
+      fest = '<div class="dc-n-fest"><b>' + extra.fest.svg + esc(extra.fest.n) + " &middot; " + esc(extra.fest.native) +
+        "</b><p>" + esc(extra.fest.text) + "</p></div>";
+    }
+
+    var meta = [];
+    if (it.full) { meta.push("Full moon: " + esc(longDate(it.full)) + (it.fullTime ? ", " + esc(it.fullTime) : "")); }
+    if (mn.south) { meta.push("Names come from northern-hemisphere seasons"); }
+    if (extra.black && mn.blackNote) { meta.push(esc(mn.blackNote)); }
+
+    return '<div class="dc-moon-name" data-wk="' + esc(it.season) + '">' +
+      '<div class="dc-n-head"><div class="dc-n-icon">' + it.svg + "</div><div>" +
+        '<div class="dc-n-sys">' + esc(mn.name) + "</div>" +
+        '<div class="dc-n-name">' + esc(it.n) + "</div>" +
+        (sub.length ? '<div class="dc-n-sub">' + esc(sub.join(" \u00b7 ")) + "</div>" : "") +
+      "</div></div>" +
+      (badges ? '<div class="dc-n-badges">' + badges + "</div>" : "") +
+      bar + fest +
+      '<div class="dc-n-label">Meaning of the name</div><p>' + esc(it.meaning) + "</p>" +
+      '<div class="dc-n-label">What this moon is about</div><p>' + esc(it.about) + "</p>" +
+      (meta.length ? '<div class="dc-n-meta">' + meta.join(" &middot; ") + "</div>" : "") +
+      "</div>";
+  }
+
+  function shortDate(iso, shift) {
+    var p = iso.split("-");
+    var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + (shift || 0)));
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  }
+
   function buildCard() {
     backdrop = document.createElement("div");
     backdrop.className = "dc-backdrop";
@@ -212,7 +277,7 @@
       "</div>" +
       '<div class="dc-moon">' + (svg ? svg.outerHTML : "") + "</div>" +
       '<div class="dc-phase">' + esc(info.n || "") + "</div>" +
-      '<div class="dc-rows">' + rows + "</div>" + wheelBlock(info) + traditionBlock(info);
+      '<div class="dc-rows">' + rows + "</div>" + moonNameBlock(info, iso) + wheelBlock(info) + traditionBlock(info);
 
     var big = card.querySelector(".moon-svg");
     if (big) { big.classList.add("dc-moon-svg"); }
@@ -253,7 +318,7 @@
     else if (e.key === "ArrowRight") { showDay(current + 1); }
   });
 
-  document.querySelectorAll(".wchip[data-wd]").forEach(function (chip) {
+  document.querySelectorAll(".wchip[data-wd], .mchip[data-wd]").forEach(function (chip) {
     chip.style.cursor = "pointer";
     chip.addEventListener("click", function () {
       var iso = chip.getAttribute("data-wd");

@@ -40,7 +40,15 @@ def build_ics(year: int) -> str:
         "CALSCALE:GREGORIAN",
         f"X-WR-CALNAME:{esc(f'NoctiCycle {year} - {cfg.CITY}')}",
     ]
+    full_names = {}
+    if cfg.MOON_NAMES:
+        from .moon_names import MoonLayer
+        full_names = MoonLayer(cfg.MOON_NAMES, year).full_moon_names()
+
     for ev in moments:
+        summary = ICS_EVENT_LABELS[ev.kind]
+        if ev.kind == "full" and ev.dt.date().isoformat() in full_names:
+            summary += " \u00b7 " + full_names[ev.dt.date().isoformat()]
         start = ev.dt.astimezone(utc)
         end = start + timedelta(minutes=30)
         lines += [
@@ -49,7 +57,7 @@ def build_ics(year: int) -> str:
             f"DTSTAMP:{stamp}",
             f"DTSTART:{start.strftime('%Y%m%dT%H%M%SZ')}",
             f"DTEND:{end.strftime('%Y%m%dT%H%M%SZ')}",
-            f"SUMMARY:{esc(ICS_EVENT_LABELS[ev.kind])}",
+            f"SUMMARY:{esc(summary)}",
             f"DESCRIPTION:{esc(f'Local time in {cfg.CITY}: ' + ev.dt.strftime('%Y-%m-%d %H:%M %Z'))}",
             "TRANSP:TRANSPARENT",
             "END:VEVENT",

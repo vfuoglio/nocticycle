@@ -1,0 +1,217 @@
+/* ===== Named moons (--moon-names) =====
+   Season colours (--wk, via data-wk) and the system accent (--ma) are generated
+   by lunar/moon_names.py. */
+
+/* ----- Banner ----- */
+.mn-banner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto 22px auto;
+    padding: 16px 22px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid color-mix(in srgb, var(--ma) 45%, transparent);
+    background:
+        radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--ma) 22%, transparent), transparent 55%),
+        rgba(15, 18, 26, 0.96);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+}
+
+.mn-art-wrap {
+    flex: 0 0 auto;
+    width: 200px;
+    height: 200px;
+    color: var(--ma);
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--ma) 40%, transparent));
+}
+
+.mn-art { width: 100%; height: 100%; display: block; }
+.mn-text { min-width: 0; }
+
+.mn-title {
+    font-family: "Merriweather", "Georgia", serif;
+    font-size: 20px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ma);
+}
+
+.mn-blurb { margin: 6px 0 12px 0; font-size: 12px; line-height: 1.5; }
+.mn-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.mn-chip, .mchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--wk);
+    background: color-mix(in srgb, var(--wk) 14%, transparent);
+    color: var(--wk);
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.mn-chip .wi, .mchip .wi { width: 16px; height: 16px; flex: 0 0 auto; }
+.mn-chip i { font-style: normal; font-weight: 400; opacity: 0.8; }
+.mchip b { padding-right: 2px; }
+.mn-leap { border-style: dashed; }
+
+.mn-south { margin: 8px 0 0 0; font-size: 10.5px; opacity: 0.85; }
+.mn-note { margin: 10px 0 0 0; font-size: 10px; font-style: italic; opacity: 0.7; }
+
+/* ----- Month ribbon + strip ----- */
+.mn-row td { padding: 0; }
+
+.mn-seg {
+    height: 22px;
+    padding: 0;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--wk) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--wk) 70%, transparent);
+    color: var(--wk);
+    overflow: hidden;
+}
+
+.mn-seg.mn-none { background: none; border: 0; }
+
+.mn-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 100%;
+    padding: 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.mn-inner .wi { width: 15px; height: 15px; flex: 0 0 auto; }
+.mn-nm { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; }
+
+.mn-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.mchip { cursor: pointer; }
+
+/* ----- Full-moon badge on the day cell (top, next to the day number) ----- */
+.mbadge {
+    position: absolute;
+    left: 17px;
+    top: 2px;
+    width: 18px;
+    height: 18px;
+    padding: 2px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    color: var(--wk);
+    background: var(--ma-bg);
+    border: 1px solid var(--wk);
+    box-shadow: 0 0 9px color-mix(in srgb, var(--wk) 55%, transparent);
+    z-index: 1;
+}
+
+.mbadge .wi { width: 100%; height: 100%; display: block; }
+
+/* ----- Day card section ----- */
+.dc-moon-name {
+    margin-top: 12px;
+    padding: 12px 14px;
+    text-align: left;
+    border-radius: 12px;
+    border: 1px solid var(--wk);
+    background:
+        radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--wk) 24%, transparent), transparent 60%),
+        color-mix(in srgb, var(--wk) 6%, transparent);
+}
+
+.dc-n-head { display: flex; align-items: center; gap: 12px; }
+
+.dc-n-icon {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+    padding: 9px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    color: var(--wk);
+    background: var(--ma-bg);
+    border: 1.5px solid var(--wk);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--wk) 50%, transparent);
+}
+
+.dc-n-icon .wi { width: 100%; height: 100%; display: block; }
+
+.dc-n-sys { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ma); }
+.dc-n-name { font-family: "Merriweather", "Georgia", "Noto Serif CJK SC", "Songti SC", "SimSun", serif; font-size: 20px; font-weight: 700; color: var(--wk); line-height: 1.15; }
+.dc-n-sub { font-size: 11px; opacity: 0.85; margin-top: 1px; }
+
+.dc-n-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+.dc-n-badge {
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--wk);
+    background: color-mix(in srgb, var(--wk) 16%, transparent);
+    color: var(--wk);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.dc-n-bar {
+    position: relative;
+    height: 6px;
+    margin: 14px 4px 4px 4px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--wk) 20%, transparent);
+}
+
+.dc-n-bar i {
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    box-sizing: border-box;
+    border-radius: 50%;
+}
+
+.dc-n-bar .full { background: var(--wk); box-shadow: 0 0 8px var(--wk); }
+.dc-n-bar .now { background: var(--ma-bg); border: 2px solid var(--wk); }
+
+.dc-n-bar-label { display: flex; justify-content: space-between; font-size: 9.5px; opacity: 0.75; margin-bottom: 2px; }
+
+.dc-n-label { margin: 10px 0 2px 0; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.65; }
+.dc-moon-name p { margin: 0; font-size: 12px; line-height: 1.5; }
+.dc-n-meta { margin-top: 10px; font-size: 10px; opacity: 0.7; }
+
+.dc-n-fest {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    border: 1px dashed var(--wk);
+    background: color-mix(in srgb, var(--wk) 10%, transparent);
+}
+
+.dc-n-fest b { color: var(--wk); display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.dc-n-fest .wi { width: 20px; height: 20px; }
+.dc-n-fest p { margin-top: 3px; }
+
+@media (max-width: 800px) {
+    .mn-banner { flex-direction: column; text-align: center; padding: 14px; }
+    .mn-art-wrap { width: 160px; height: 160px; }
+    .mn-chips { justify-content: center; }
+    .month-block tr.mn-row { display: none; }
+    .mbadge { width: 15px; height: 15px; left: 2px; top: 2px; }
+}
+
+@media (prefers-color-scheme: light) {
+    .mn-banner {
+        background:
+            radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--ma) 16%, transparent), transparent 55%),
+            #ffffff;
+        box-shadow: 0 8px 22px rgba(46, 52, 64, 0.14);
+    }
+    .mbadge { box-shadow: 0 0 6px color-mix(in srgb, var(--wk) 35%, transparent); }
+}
