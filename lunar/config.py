@@ -100,8 +100,6 @@ LAT: float | None = None
 LON: float | None = None
 OBSERVER = None
 
-# Project root (the folder holding css/ and js/).
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def validate_config():

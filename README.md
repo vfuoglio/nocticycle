@@ -328,12 +328,29 @@ as all-day events.
 ### ✔ Fully offline
 
 Once generated, the HTML file requires no internet connection. Generating it needs the internet only
-once, to download the ephemeris (about 17 MB, cached as `de421.bsp`) and, unless you pass `--tz`, to look the
-city up.
+once, to download the ephemeris (about 17 MB, kept in `~/.local/share/nocticycle/`; the release builds
+already contain it) and, unless you pass `--tz`, to look the city up.
 
 ---
 
 # 📦 Installation
+
+## Ready-made Linux builds (no Python needed)
+
+Download these from the [GitHub releases](../../releases) page and check them against `SHA256SUMS`:
+
+- **AppImage:** `chmod +x NoctiCycle-<version>-x86_64.AppImage`, then
+  `./NoctiCycle-<version>-x86_64.AppImage --city "Halifax"`.
+- **Folder build:** `tar xzf nocticycle-<version>-linux-x86_64.tar.gz`, then
+  `./nocticycle/nocticycle --city "Halifax"`.
+
+The ephemeris is bundled, so the astronomy works offline; only the city lookup needs the internet (or pass
+`--tz`). The builds need a glibc at least as recent as the machine that built them (the 0.1.0 builds were
+made on a very recent distro, so they target recent distributions; to build for older ones use
+`packaging/Dockerfile`). `nocticycle --version` prints the version.
+
+## From source
+
 
 NoctiCycle requires a few external Python packages:
 
@@ -468,7 +485,8 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
 | `assets.py` / `dates.py` | CSS/JS loading, date helpers |
 | `app.py` | `main()` wiring everything together |
 
-CSS and JS stay in `css/` and `js/`.
+CSS and JS live in `lunar/assets/`. Packaging files (PyInstaller spec, AppImage files, build script) are in
+`packaging/`.
 
 ---
 
@@ -501,7 +519,8 @@ Command-line flags override these values.
 ```
 --tz "Your/Timezone"       timezone (default: detected from the city)
 --year 2027                year (default: current year)
--o, --output FILE.html     output path (default: lunar_calendar_<city>_<year>.html)
+-o, --output FILE.html     output path (default: lunar_calendar_<city>_<year>.html in the current folder)
+--version                  print the version
 -h, --help                 show all options
 
 --show-luminance / --hide-luminance        illumination % per day (default: shown)
@@ -691,7 +710,7 @@ The script generates:
 lunar_calendar_<city>_<YEAR>.html
 ```
 
-in the project folder, unless you choose another path with `-o`. With `--ics` an `.ics` file with the same
+in the folder you run the command from, unless you choose another path with `-o`. With `--ics` an `.ics` file with the same
 name (or the path you give) is written as well.
 
 Open it in any browser.  
@@ -767,6 +786,19 @@ When no rise or set occurs between 00:00 and 23:59 local time, the calendar disp
 ```↑ --   ↓ --```
 
 This does not mean the Moon is hidden by daylight — it means it never crossed the horizon during that date.
+
+---
+
+# 🛠 Building a release (Linux)
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install skyfield tzdata geopy timezonefinder certifi pyinstaller
+packaging/build.sh        # folder build (.tar.gz), AppImage and SHA256SUMS in release/
+```
+
+The version number lives in `lunar/__init__.py` (and appears in `nocticycle --version` and in the footer of
+every generated page). `pip install .` installs a `nocticycle` command. See `CHANGELOG.md` for the release notes.
 
 ---
 

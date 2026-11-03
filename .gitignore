@@ -3,3 +3,8 @@ __pycache__/
 .*.kate-swp
 *.kate-swp
 *.bsp
+release/
+build/
+dist/
+*.egg-info/
+lunar/data/

@@ -18,7 +18,14 @@ def geocode_candidates(name: str, limit: int = 5) -> list:
     """
     from geopy.exc import GeopyError
 
-    geolocator = Nominatim(user_agent="nocticycle", timeout=10)
+    kwargs = {}
+    try:  # use certifi's CA bundle when available (needed in bundled builds)
+        import ssl
+        import certifi
+        kwargs["ssl_context"] = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        pass
+    geolocator = Nominatim(user_agent="nocticycle", timeout=10, **kwargs)
     try:
         matches = geolocator.geocode(name, exactly_one=False, limit=limit)
     except GeopyError as exc:

@@ -24,7 +24,7 @@ def main():
             print(f"Error: {e}")
             sys.exit(1)
     else:
-        output_path = os.path.join(cfg.BASE_DIR, f"lunar_calendar_{cfg.CITY}_{cfg.YEAR}.html")
+        output_path = os.path.join(os.getcwd(), f"lunar_calendar_{cfg.CITY}_{cfg.YEAR}.html")
 
     if cfg.TRADITION and not cfg.COSMETICS_MODE:
         print("Note: --tradition is only available in the interactive layout; "

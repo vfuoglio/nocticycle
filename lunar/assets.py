@@ -1,13 +1,16 @@
 """Loading of the bundled CSS/JS assets."""
 
 import json
-import os
-from . import config as cfg
+from pathlib import Path
+
+# Assets ship inside the package (works from a source checkout, a pip install
+# and a PyInstaller bundle alike).
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 
 
 def load_css(style: str) -> str:
     """
-    Load and validate a CSS stylesheet from the project's `css/` directory.
+    Load and validate a CSS stylesheet from the package's `assets/css/` directory.
 
     This function supports the theme system by reading external `.css`
     files such as `css/print.css`, `css/default.css`, or any future
@@ -24,7 +27,7 @@ def load_css(style: str) -> str:
     style : str
         The name of the CSS theme to load (e.g., "default", "print").
         The function will automatically construct the full path:
-        `<script_dir>/css/<style>.css`.
+        `<package>/assets/css/<style>.css`.
 
     Returns
     -------
@@ -52,12 +55,9 @@ def load_css(style: str) -> str:
       in the final HTML output.
 
     • Additional themes can be added simply by placing new `.css`
-      files in the `css/` directory.
+      files in the `assets/css/` directory.
     """
-    import os
-
-
-    css_path = os.path.join(cfg.BASE_DIR, "css", f"{style}.css")
+    css_path = ASSETS_DIR / "css" / f"{style}.css"
 
     # --- Read file ---
     with open(css_path, "r", encoding="utf-8") as f:
@@ -105,6 +105,5 @@ def js_json(obj) -> str:
 
 
 def load_js(name: str) -> str:
-    """Read an inline script from the project's `js/` directory."""
-    with open(os.path.join(cfg.BASE_DIR, "js", f"{name}.js"), "r", encoding="utf-8") as f:
-        return f.read()
+    """Read an inline script from the package's `assets/js/` directory."""
+    return (ASSETS_DIR / "js" / f"{name}.js").read_text(encoding="utf-8")

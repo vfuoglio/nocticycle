@@ -3,6 +3,7 @@
 from datetime import date
 import argparse
 import os
+from . import __version__
 from . import traditions
 from . import wheels
 from . import moon_names
@@ -93,6 +94,9 @@ def parse_cli_args():
     parser = argparse.ArgumentParser(
         description="Generate a full-year lunar calendar with NoctiCycle."
     )
+
+    parser.add_argument("--version", action="version",
+                        version=f"NoctiCycle {__version__}")
 
     # Required
     parser.add_argument(

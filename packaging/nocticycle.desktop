@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=NoctiCycle
+Comment=Year lunar calendar generator
+Exec=nocticycle
+Icon=nocticycle
+Terminal=true
+Categories=Education;Science;Astronomy;

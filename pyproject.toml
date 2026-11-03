@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nocticycle"
+dynamic = ["version"]
+description = "Generate a full-year lunar calendar as a single HTML file, with optional cultural layers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Valerio Fuoglio" }]
+dependencies = [
+    "skyfield",
+    "tzdata",
+    "geopy",
+    "timezonefinder",
+    "certifi",
+]
+
+[project.scripts]
+nocticycle = "lunar.app:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "lunar.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["lunar*"]
+
+[tool.setuptools.package-data]
+lunar = ["assets/css/*.css", "assets/js/*.js"]
