@@ -93,41 +93,53 @@ td {
     margin-bottom: 2px;
 }
 
-/* ===== Phase badges (from print CSS) ===== */
-.phase {
-    font-weight: bold;
-    color: #fff;
-    border-radius: 4px;
-    padding: 0 8px
+/* ===== Phase band: a night-sky bar that follows the moon's illumination ===== */
+td.phase-band {
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
 }
 
-.phase-new {
-    background:  var(--new-color);
-    text-align: center
+.pb {
+    display: flex;
+    height: 26px;
+    border-radius: 13px;
+    overflow: hidden;
+    border: 1px solid #2c3a7a;
+    background: #0b1026;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-.phase-waxing {
-    background: linear-gradient(
-        to right,
-        var(--new-color) 0%,
-                                var(--full-color) 100%
-    );
+.pb-seg {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dfe6ff;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
 }
 
-.phase-full {
-    background:  var(--full-color);
-    color: #000;
-    text-align: center
+.pb-seg.pb-lit { color: #16204a; text-shadow: none; }
+.pb-seg[data-p="new"] { color: #8b97c9; }
+
+.pb-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    font-family: "Merriweather", "Georgia", serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.06em;
 }
 
-.phase-waning {
-    background: linear-gradient(
-        to right,
-        var(--full-color) 0%,
-                                var(--new-color) 100%
-    );
-    color: #000
-}
+.pb-glyph { width: 13px; height: 13px; flex: 0 0 auto; }
+.pb-seg[data-p="full"] .pb-name { font-style: normal; font-weight: 700; }
 
 /* ===== Moon icon, halo, depth ===== */
 .moon-wrapper {

@@ -10,6 +10,7 @@ from . import config as cfg
 from .assets import js_json, load_css, load_js
 from .astro import assign_daily_phases, compute_phase_events_for_year, illumination_trend_for_date, moon_age_days, moon_illumination_percent, moon_phase_fraction, moon_rise_set_times, phase_name_for_date
 from .dates import month_name
+from .phase_band import phase_band_row
 from .moon_svg import is_southern_hemisphere, render_illumination_sparkline, render_moon_svg
 from .print_writer import write_print_html
 from .tradition_days import tradition_item_for_day
@@ -105,43 +106,14 @@ def write_html(year: int, output_path: str) -> None:
                     <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                 </div>
                 <table>
-                <tr class="phase-row">
             """
         else:
             html += f"<tr><td rowspan='2'><b>{month_name(m)}</b></td>"
 
-        # Row 1: phase bands
-        d = 1
-        while d <= days:
-            phase = phases[d]
-            span = 1
-            while d + span <= days and phases[d + span] == phase:
-                span += 1
-
-            display = (
-                "New" if phase == "New Moon"
-                else "Full" if phase == "Full Moon"
-                else phase
-            )
-
-            css = {
-                "New Moon": "phase-new",
-                "Waxing": "phase-waxing",
-                "Full Moon": "phase-full",
-                "Waning": "phase-waning"
-            }[phase]
-
-            html += (
-                f"<td colspan='{span}' class='phase {css}'>"
-                f"<div class='phase-inner'>{display}</div>"
-                f"</td>"
-            )
-            d += span
-
-        for _ in range(days + 1, 32):
-            if not cfg.COSMETICS_MODE:
-                html += "<td></td>"
-        html += "</tr>\n"
+        # Row 1: phase band (a single night-sky bar following the moon's illumination)
+        month_illum = {d: moon_illumination_percent(date(year, m, d)) for d in range(1, days + 1)}
+        html += phase_band_row(days, phases, {d: v[1] for d, v in month_illum.items()},
+                               mirror=is_southern_hemisphere())
 
         if layer and cfg.COSMETICS_MODE:
             html += layer.ribbon_row_html(m, days)
@@ -167,7 +139,7 @@ def write_html(year: int, output_path: str) -> None:
                 # Sunday-first weekday index; only used by the narrow-screen grid
                 # layout to offset the first day of the month.
                 dow = (day_date.weekday() + 1) % 7
-                event_time_str, illum = moon_illumination_percent(day_date)
+                event_time_str, illum = month_illum[d]
                 phase_name = phase_name_for_date(day_date, frac)
 
                 trad_item = None
