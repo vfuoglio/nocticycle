@@ -9,9 +9,14 @@ NoctiCycle computes:
 - Waxing/waning classification
 - Optional moonrise and moonset times
 - Optional per-day **illumination trend sparklines**
-- Optional cultural overlays: **Māori Maramataka**, **Hindu tithi** and **Wiccan esbat** calendars
-- Optional **moon names**: the Anishinaabe, Wiccan, Almanac, Celtic tree and Chinese lunar-month names
-- Optional **year wheels**: the yearly festivals of Wicca, Druidry, Slavic Rodnovery, East Asia (24 solar terms) and Heathenry
+
+and can lay three independent, combinable **cultural layers** on top of the astronomy:
+
+| Layer | Switch | What it adds | Options |
+|---|---|---|---|
+| Lunar tradition | `--tradition` | A meaning for every *day* of the lunar cycle | Māori Maramataka, Hindu tithi, Wiccan esbat phases |
+| Moon names | `--moon-names` | A name for every *moon* (lunation) | Anishinaabe, Wiccan, Almanac, Celtic tree, Chinese lunar months |
+| Year wheel | `--wheel` | The yearly *festivals* of a tradition | Wicca, Druid, Slavic, East Asian solar terms, Heathen |
 
 It produces either a rich interactive page or a one-page, print-ready layout. The output works offline, in any browser.
 
@@ -42,7 +47,7 @@ NoctiCycle fixes that:
 - Everything is computed locally using **Skyfield** and NASA ephemeris data
 - Output is a single, portable HTML file
 - You choose the year, location, and display options
-- The cosmetic mode produces a modern, elegant layout
+- The interactive mode produces a modern, elegant layout with a detail card for every day
 - The print mode fits the whole year on one landscape page
 
 It’s perfect for planners, journals, almanacs, or anyone who loves tracking the Moon.
@@ -88,15 +93,20 @@ Enabled via:
 
 ### ✔ Two display modes
 
-- **Interactive mode** (default): modern, elegant, visually rich, with a detail card per day
+- **Interactive mode** (default): modern, elegant, visually rich, with a detail card per day and the
+  optional layers (`--tradition`, `--moon-names`, `--wheel`)
 - **Print mode** (`--print-format`): the whole year on one landscape sheet, legible in black and white
-  (see [Print on one landscape page](#print-on-one-landscape-page))
+  (see [Print on one landscape page](#print-on-one-landscape-page)). Paper size, moon style and layout are
+  set with `--paper`, `--print-style` and `--print-layout`. The layers are not available in print mode and are
+  ignored, with a note.
 
 ### ✔ Interactive day details
 
 Click (or press Enter on) any day to open a card with a large moon, the phase name,
 illumination, moon age, rise/set times (with `--show-rise-set-times`) and the next
-new/full moon. Use the arrow keys to move between days and Esc to close.
+new/full moon. When a layer is active, the card also explains the day's lunar tradition entry,
+moon name and year-wheel festival, each in its own section. Use the arrow keys to move between
+days and Esc to close.
 
 ### ✔ Today highlight and next-events banner
 
@@ -114,7 +124,9 @@ system's light/dark preference.
 
 ### ✔ Calendar export (.ics)
 
-`--ics` exports new, quarter and full moon events for import into Google/Apple/Outlook calendars.
+`--ics [PATH]` exports new, quarter and full moon events for import into Google/Apple/Outlook calendars.
+The file is written next to the HTML (or at `PATH`, which must end in `.ics`). With `--moon-names` the
+full-moon events carry the moon's name, and with `--wheel` the festivals are added as all-day events.
 
 ### ✔ Hemisphere-aware icons and quarter markers
 
@@ -310,7 +322,9 @@ as all-day events.
 
 ### ✔ Fully offline
 
-Once generated, the HTML file requires no internet connection.
+Once generated, the HTML file requires no internet connection. Generating it needs the internet only
+once, to download the ephemeris (about 17 MB, cached as `de421.bsp`) and, unless you pass `--tz`, to look the
+city up.
 
 ---
 
@@ -414,13 +428,14 @@ python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2025
 - Full moons
 - Quarter moons (optional)
 - Daily illumination and moon age
-- Phase classification and, optionally, rise/set times, trend data and tithi/night/esbat labels
+- Phase classification and, optionally, rise/set times and trend data
+- Optionally the layers: lunar-day meanings, moon names, solstices/equinoxes/solar terms and festival dates
 
 ## 3. It renders a complete HTML calendar
 
 - One year, twelve months
 - SVG moons and phase bands
-- Optional sparklines, quarters and cultural overlays
+- Optional sparklines, quarters and the three cultural layers
 - Or a one-page print layout
 
 ## 4. You open the file in any browser
@@ -465,6 +480,9 @@ COSMETICS_MODE = True          # False with --print-format
 ILLUMINATION_TREND = False
 ```
 
+(The layer, quarter and print settings are set from the command line only: `--tradition`, `--wheel`,
+`--moon-names`, `--show-quarters`, `--paper`, `--print-style` and `--print-layout`.)
+
 Command-line flags override these values.
 
 ### Required CLI parameters
@@ -479,6 +497,7 @@ Command-line flags override these values.
 --tz "Your/Timezone"       timezone (default: detected from the city)
 --year 2027                year (default: current year)
 -o, --output FILE.html     output path (default: lunar_calendar_<city>_<year>.html)
+-h, --help                 show all options
 
 --show-luminance / --hide-luminance        illumination % per day (default: shown)
 --show-event-time / --hide-event-time      times of new/full moons (default: shown)
@@ -488,15 +507,27 @@ Command-line flags override these values.
 --show-rise-set-times                      moonrise and moonset
 --show-quarters                            mark first/last quarter days
 --ics [PATH]                               export events as an .ics file
---tradition maori|hindu|wiccan             cultural lunar calendar overlay
---wheel wicca|druid|slavic|eastasian|heathen   yearly festivals (year wheel), combinable with --tradition
---moon-names anishinaabe|wiccan|almanac|celtic|chinese   name every lunation (13 moons etc.)
+
+--tradition maori|hindu|wiccan             lunar tradition: a meaning for every day
+--moon-names anishinaabe|wiccan|almanac|celtic|chinese   a name for every moon (lunation)
+--wheel wicca|druid|slavic|eastasian|heathen             yearly festivals (year wheel)
 
 --print-format                             one-page print layout
 --paper letter|a4|legal|tabloid            print paper size (default: letter)
 --print-style grey|hatched|solid           print moon style (default: grey)
 --print-layout rows|columns                print layout (default: rows)
 ```
+
+How the switches relate:
+
+- `--tradition`, `--moon-names` and `--wheel` are independent and can all be used together.
+- Those three, `--illumination-trend` and the rise/set times only exist in the interactive layout. With
+  `--print-format` the three layers are ignored with a note; `--paper`, `--print-style` and `--print-layout`
+  only apply to `--print-format`.
+- `--show-*`/`--hide-*` pairs: the last one given wins. `--exact-event-illumination` and `--midnight-illumination`
+  are alternatives.
+- Rise/set times, hemisphere-aware icons and the wheel dates need the city's coordinates, so they need the
+  internet (or a successful earlier lookup); `--tz` alone only replaces the timezone detection.
 
 Run `python3 nocticycle.py --help` for the full list.
 
@@ -599,6 +630,13 @@ python3 nocticycle.py --city "Halifax" --year 2026 --show-quarters
 python3 nocticycle.py --city "Halifax" --tz "America/Halifax" --year 2026 --illumination-trend --show-event-time
 ```
 
+### Combine the layers
+
+```
+# Wheel of the Year, esbat moon names and esbat phases together, with a calendar export
+python3 nocticycle.py --city "Halifax" --wheel wicca --moon-names wiccan --tradition wiccan --ics
+```
+
 ---
 
 # 🌓 Display Options
@@ -616,9 +654,15 @@ Shows the exact local time of new/full moon.
 A ±3‑day mini‑graph showing illumination change.  
 Great for quickly seeing waxing vs waning.
 
-### Cosmetic vs Print mode
+### Layers
 
-- Interactive mode includes colours, day cards, sparklines, rise/set times and cultural overlays.
+- `--tradition`: a coloured icon and short label on every day (night name, tithi or phase) and a full entry in the day card.
+- `--moon-names`: a ribbon over each lunation, an icon badge on the full-moon day and a chip under the month.
+- `--wheel`: a glowing icon badge on each festival day, a chip under the month and a banner with the year wheel.
+
+### Interactive vs Print mode
+
+- Interactive mode includes colours, day cards, sparklines, rise/set times and the three cultural layers.
 - Print mode strips it down to what reads well on paper: weekday, day, moon, illumination and an event list.
 
 ---
@@ -642,7 +686,8 @@ The script generates:
 lunar_calendar_<city>_<YEAR>.html
 ```
 
-in the project folder, unless you choose another path with `-o`.
+in the project folder, unless you choose another path with `-o`. With `--ics` an `.ics` file with the same
+name (or the path you give) is written as well.
 
 Open it in any browser.  
 Share it. Print it. Use it in journals or planners.
@@ -670,6 +715,9 @@ Share it. Print it. Use it in journals or planners.
     - Trend sparklines
 5. You print it or embed it in your digital planner.
 
+Add `--wheel`, `--moon-names` and `--tradition` to the command to see festivals, moon names and lunar-day
+meanings on the same calendar.
+
 ---
 
 # ❓ FAQ
@@ -681,6 +729,18 @@ Geocoding gives us latitude and longitude for astronomical calculations, but it 
 
 NoctiCycle needs the exact IANA timezone (including DST rules) to convert UTC lunar events into accurate local times.
 NoctiCycle looks the timezone up from the geocoded coordinates, so `--tz` is optional. Passing it explicitly overrides the detection (useful offline or for unusual cases) and ensures that rise/set times, phase events, and illumination values are computed correctly for your location.
+
+## Which options can I combine?
+
+All of them in the interactive layout, including the three layers (`--tradition`, `--moon-names`, `--wheel`).
+`--print-format` is a separate layout: it ignores the layers (with a note) and is the only one that uses `--paper`,
+`--print-style` and `--print-layout`.
+
+## Do the cultural names and festivals change in the southern hemisphere?
+
+The Wicca, Druid and Heathen wheels are shifted by six months south of the equator; the Slavic and East Asian
+wheels, the moon names and the lunar traditions are shown as published, with a note where relevant. The moon icons
+are always mirrored to match the view from your hemisphere.
 
 ## Why do some days show “--” for moonrise or moonset?
 
