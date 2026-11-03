@@ -148,6 +148,10 @@ the Māori day begins with the night), coloured by character: rest, rising energ
 Tamatea (unpredictable) and Tangaroa (sea and fishing). The day card gives the meaning.
 Southern-hemisphere places such as Auckland also get correctly mirrored moon icons.
 
+<a href="screenshots/tradition_maori.png">
+  <img src="screenshots/tradition_maori.png" alt="Māori Maramataka overlay (Auckland, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
 #### `hindu`: Hindu Panchang, the tithi
 
 The Hindu calendar (*Panchang*) divides the lunar month into 30 **tithis**. A tithi is the time it
@@ -162,6 +166,10 @@ assigning a tithi to a date. Shukla days are gold and Krishna days indigo. Badge
 **Chaturthi** (associated with Ganesha), **Pradosha** (13th tithi, associated with Shiva) and
 **Maha Shivaratri's** monthly form on Krishna Chaturdashi.
 
+<a href="screenshots/tradition_hindu.png">
+  <img src="screenshots/tradition_hindu.png" alt="Hindu tithi overlay (Varanasi, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
+
 #### `wiccan`: Wiccan esbats
 
 In Wicca and related modern pagan paths, an **esbat** is a ritual or gathering held at a lunar
@@ -174,6 +182,10 @@ reflection.
 NoctiCycle labels each day as **dark moon**, **waxing crescent** (initiation), **building**
 (first quarter to waxing gibbous), **full moon esbat** (peak) or **waning** (release), each with
 its own colour, and adds the esbat badge on full-moon days.
+
+<a href="screenshots/tradition_wiccan.png">
+  <img src="screenshots/tradition_wiccan.png" alt="Wiccan esbat overlay (Halifax, 2025)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
 
 #### Accuracy and your own version
 
