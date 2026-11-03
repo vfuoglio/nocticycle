@@ -107,7 +107,7 @@ td.phase-band {
     height: 26px;
     border-radius: 13px;
     overflow: hidden;
-    border: 1px solid #2c3a7a;
+    border: 1px solid #3a3470;
     background: #0b1026;
     box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
@@ -117,11 +117,11 @@ td.phase-band {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #dfe6ff;
+    color: #f1e6d8;
     text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
 }
 
-.pb-seg.pb-lit { color: #16204a; text-shadow: none; }
+.pb-seg.pb-lit { color: #2b1d35; text-shadow: none; }
 .pb-seg[data-p="new"] { color: #8b97c9; }
 
 .pb-inner {

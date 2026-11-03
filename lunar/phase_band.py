@@ -8,8 +8,9 @@ italic label; narrow segments show the glyph only.
 
 from datetime import date
 
-# (illumination 0..1, rgb): deep night sky -> moonlight
-_STOPS = [(0.0, (8, 12, 31)), (0.5, (36, 50, 125)), (0.85, (150, 168, 230)), (1.0, (232, 237, 255))]
+# (illumination 0..1, rgb): deep night sky -> dusky mauve -> amber -> warm moonlight
+_STOPS = [(0.0, (8, 12, 31)), (0.4, (38, 44, 108)), (0.68, (112, 98, 148)),
+          (0.88, (212, 176, 150)), (1.0, (252, 238, 212))]
 
 _NAMES = {"New Moon": "New", "Full Moon": "Full", "Waxing": "Waxing", "Waning": "Waning"}
 _TITLES = {"New Moon": "New Moon", "Full Moon": "Full Moon", "Waxing": "Waxing", "Waning": "Waning"}
@@ -32,7 +33,7 @@ def _colour(illum_pct: float) -> str:
             f = (t - t0) / (t1 - t0)
             r, g, b = (round(a + (b_ - a) * f) for a, b_ in zip(c0, c1))
             return f"rgb({r},{g},{b})"
-    return "rgb(232,237,255)"
+    return "rgb(252,238,212)"
 
 
 def _glyph(phase: str, mirror: bool) -> str:
@@ -61,7 +62,7 @@ def phase_band_row(days: int, phases: dict, illum: dict, mirror: bool = False) -
         if span == 1:
             stops = f"{_colour(illum[d])}, {_colour(illum[d])}"
         centre = illum[d + span // 2]
-        lit = phase == "Full Moon" or centre >= 80
+        lit = phase == "Full Moon" or centre >= 78
         label = f"<span class='pb-name'>{_NAMES[phase]}</span>" if span >= 4 else ""
         segs.append(
             f"<div class='pb-seg{' pb-lit' if lit else ''}' data-p='{phase.split()[0].lower()}' "
