@@ -115,8 +115,13 @@ the next new and full moon with a countdown.
 
 ### ✔ Responsive layout and light/dark theme
 
-On narrow screens each month becomes a week grid. The default theme follows your
-system's light/dark preference.
+On narrow screens each month becomes a week grid. The page has a dark theme (the default look, shown
+in most screenshots here) and a light theme, and it follows your system's light/dark preference
+automatically; there is no manual switch.
+
+<a href="screenshots/theme_light.png">
+  <img src="screenshots/theme_light.png" alt="The light theme (Auckland, 2025, three layers)" width="100%" style="border-radius: 8px; border: 1px solid #ccc;" />
+</a>
 
 ### ✔ Automatic timezone detection
 
